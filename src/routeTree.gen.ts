@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedCoberturasRouteImport } from './routes/_authenticated/coberturas'
 import { Route as AuthenticatedConferenciaRouteImport } from './routes/_authenticated/conferencia'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 
@@ -29,6 +30,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedCoberturasRoute = AuthenticatedCoberturasRouteImport.update({
+  id: '/coberturas',
+  path: '/coberturas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedConferenciaRoute =
   AuthenticatedConferenciaRouteImport.update({
     id: '/conferencia',
@@ -44,12 +50,14 @@ const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/coberturas': typeof AuthenticatedCoberturasRoute
   '/conferencia': typeof AuthenticatedConferenciaRoute
   '/painel': typeof AuthenticatedPainelRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/coberturas': typeof AuthenticatedCoberturasRoute
   '/conferencia': typeof AuthenticatedConferenciaRoute
   '/painel': typeof AuthenticatedPainelRoute
 }
@@ -58,19 +66,21 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/coberturas': typeof AuthenticatedCoberturasRoute
   '/_authenticated/conferencia': typeof AuthenticatedConferenciaRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/conferencia' | '/painel'
+  fullPaths: '/' | '/auth' | '/coberturas' | '/conferencia' | '/painel'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/conferencia' | '/painel'
+  to: '/' | '/auth' | '/coberturas' | '/conferencia' | '/painel'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/coberturas'
     | '/_authenticated/conferencia'
     | '/_authenticated/painel'
   fileRoutesById: FileRoutesById
@@ -104,6 +114,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/coberturas': {
+      id: '/_authenticated/coberturas'
+      path: '/coberturas'
+      fullPath: '/coberturas'
+      preLoaderRoute: typeof AuthenticatedCoberturasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/conferencia': {
       id: '/_authenticated/conferencia'
       path: '/conferencia'
@@ -122,11 +139,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedCoberturasRoute: typeof AuthenticatedCoberturasRoute
   AuthenticatedConferenciaRoute: typeof AuthenticatedConferenciaRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedCoberturasRoute: AuthenticatedCoberturasRoute,
   AuthenticatedConferenciaRoute: AuthenticatedConferenciaRoute,
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
 }
