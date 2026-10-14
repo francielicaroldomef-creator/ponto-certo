@@ -58,7 +58,7 @@ function Assignments({ emp, onClose }: { emp: any; onClose: () => void }) {
   const [post, setPost] = useState("");
   const [start, setStart] = useState("");
   const { data: posts } = useQuery({ queryKey: ["posts", contract], enabled: !!contract, queryFn: async () => (await supabase.from("posts").select("id, code").eq("contract_id", contract).eq("active", true).order("code")).data ?? [] });
-  const add = async () => {
+  const add = async (): Promise<any> => {
     if (!contract || !start) return toast.error("Informe contrato e início.");
     const current = (emp.assignments ?? []).filter((a: any) => !a.end_date);
     for (const a of current) await supabase.from("employee_assignments").update({ end_date: start }).eq("id", a.id);

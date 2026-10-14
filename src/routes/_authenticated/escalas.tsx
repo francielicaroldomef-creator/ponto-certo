@@ -26,7 +26,7 @@ function Escalas() {
     queryKey: ["schedules", contract, from, to], enabled: !!contract,
     queryFn: () => fetchAll((a, b) => supabase.from("schedules").select("*, employee:employees(registration, name), post:posts(code)").eq("contract_id", contract).gte("work_date", from).lte("work_date", to).order("work_date").range(a, b)),
   });
-  const generate = async () => {
+  const generate = async (): Promise<any> => {
     const { data: n, error } = await supabase.rpc("generate_schedules", { _contract: contract, _from: from, _to: to });
     if (error) return toast.error(errMsg(error));
     toast.success(`${n} escala(s) criada(s). Já existentes foram mantidas.`);

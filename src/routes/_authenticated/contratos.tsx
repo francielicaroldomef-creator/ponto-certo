@@ -25,7 +25,7 @@ function Contratos() {
     <CrudPage title="Contratos" table="contracts" order="code" search={(r) => `${r.code} ${r.name} ${r.client}`}
       description="Supervisores só visualizam contratos em que são responsáveis."
       defaults={{ active: true, discount_rule: "hora", required_headcount: 0 }}
-      transform={(v) => ({ ...v, active: v.active === "true" || v.active === true })}
+      transform={(v) => ({ ...v, active: v["active"] === "true" || v["active"] === true })}
       fields={[
         { key: "code", label: "Código", required: true, half: true },
         { key: "name", label: "Nome", required: true, half: true },

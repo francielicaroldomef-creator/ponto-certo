@@ -32,7 +32,7 @@ function Coberturas() {
   const { data } = useQuery({ queryKey: ["period", contract, from, to], queryFn: () => loadPeriod(contract, from, to), enabled: !!contract });
   const refresh = () => qc.invalidateQueries({ queryKey: ["period"] });
 
-  const update = async (id: string, patch: Record<string, string>) => {
+  const update = async (id: string, patch: any) => {
     const { error } = await supabase.from("coverages").update(patch).eq("id", id);
     if (error) toast.error(errMsg(error)); else refresh();
   };
@@ -102,7 +102,7 @@ function NewCoverage({ contract, rows, onClose, onSaved }: { contract: string; r
   const dw = dws?.find((d: any) => d.id === person);
   const suggested = useMemo(() => (type === "diarista" && dw ? suggestCoverageCents(minutes, need?.result.requiredMin ?? 480, dw.day_rate, dw.hour_rate) : 0), [type, dw, minutes, need]);
 
-  const save = async () => {
+  const save = async (): Promise<any> => {
     if (!need || !person) return toast.error("Selecione a ocorrência e a pessoa.");
     setBusy(true);
     const { error } = await supabase.from("coverages").insert({

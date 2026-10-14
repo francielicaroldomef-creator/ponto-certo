@@ -16,7 +16,7 @@ function Postos() {
       search={(r) => `${r.code} ${r.role_name} ${r.contract?.code}`}
       description="Valores alterados aqui não modificam registros já gravados (o valor da hora é congelado em cada registro)."
       defaults={{ start_time: "08:00", end_time: "17:00", break_start: "12:00", break_end: "13:00", required_qty: 1, active: "true", shift: "Diurno" }}
-      transform={(v) => ({ ...v, active: v.active === "true" || v.active === true })}
+      transform={(v) => ({ ...v, active: v["active"] === "true" || v["active"] === true })}
       fields={[
         { key: "contract_id", label: "Contrato", type: "select", options: (contracts ?? []).map((c) => ({ value: c.id, label: c.code })) },
         { key: "code", label: "Código", half: true },
