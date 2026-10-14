@@ -20,8 +20,8 @@ export function DatePicker({ value, onChange, label }: { value: string; onChange
           mode="single"
           locale={ptBR}
           selected={value ? fromISO(value) : undefined}
-          defaultMonth={value ? fromISO(value) : undefined}
-          onSelect={(d) => d && onChange(toISO(d))}
+          {...(value ? { defaultMonth: fromISO(value) } : {})}
+          onSelect={(d) => { if (d) onChange(toISO(d)); }}
         />
       </PopoverContent>
     </Popover>

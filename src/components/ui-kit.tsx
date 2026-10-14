@@ -10,7 +10,7 @@ import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-export function PageHeader({ title, description, actions }: { title: string; description?: string; actions?: ReactNode }) {
+export function PageHeader({ title, description, actions }: { title: string; description?: string | undefined; actions?: ReactNode }) {
   return (
     <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>

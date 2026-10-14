@@ -25,7 +25,7 @@ export interface FieldDef {
 export function CrudPage({
   title, description, table, select = "*", order, fields, cols, search, defaults, filter, extraActions, transform,
 }: {
-  title: string; description?: string; table: string; select?: string; order: string; fields: FieldDef[]; cols: Col<any>[];
+  title: string; description?: string | undefined; table: string; select?: string; order: string; fields: FieldDef[]; cols: Col<any>[];
   search: (r: any) => string; defaults?: Record<string, any>; filter?: (q: any) => any; extraActions?: ReactNode;
   transform?: (v: Record<string, any>) => Record<string, any>;
 }) {
@@ -44,7 +44,7 @@ export function CrudPage({
   });
   const [editing, setEditing] = useState<Record<string, any> | null>(null);
 
-  const save = async () => {
+  const save = async (): Promise<void> => {
     if (!editing) return;
     const payload: Record<string, any> = {};
     for (const f of fields) {
@@ -54,10 +54,10 @@ export function CrudPage({
       payload[f.key] = v;
     }
     const final = transform ? transform(payload) : payload;
-    const res = editing.id
-      ? await (supabase.from as any)(table).update(final).eq("id", editing.id)
+    const res = editing["id"]
+      ? await (supabase.from as any)(table).update(final).eq("id", editing["id"])
       : await (supabase.from as any)(table).insert(final);
-    if (res.error) return toast.error(errMsg(res.error));
+    if (res.error) { toast.error(errMsg(res.error)); return; }
     toast.success("Salvo.");
     setEditing(null);
     qc.invalidateQueries({ queryKey: ["crud", table] });
@@ -75,7 +75,7 @@ export function CrudPage({
       <p className="mt-3 text-xs text-muted-foreground">Registros já utilizados não são excluídos: altere a situação para inativo para preservar o histórico.{!canEdit && " Somente administradores podem editar cadastros."}</p>
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{editing?.id ? "Editar" : "Novo"} — {title}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editing?.["id"] ? "Editar" : "Novo"} — {title}</DialogTitle></DialogHeader>
           <div className="grid max-h-[65vh] grid-cols-2 gap-3 overflow-y-auto pr-1">
             {fields.map((f) => (
               <Field key={f.key} label={f.label} className={f.half ? "" : "col-span-2"}>

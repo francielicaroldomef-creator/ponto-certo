@@ -6,7 +6,7 @@ export type Interval = [number, number];
 export function toMin(t: string | null | undefined): number | null {
   if (!t) return null;
   const [h, m] = t.split(":").map(Number);
-  return h * 60 + (m || 0);
+  return (h ?? 0) * 60 + (m || 0);
 }
 export function minToHHMM(m: number): string {
   const h = Math.floor(m / 60);

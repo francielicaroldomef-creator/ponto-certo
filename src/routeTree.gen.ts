@@ -16,10 +16,16 @@ import { Route as AuthenticatedCoberturasRouteImport } from './routes/_authentic
 import { Route as AuthenticatedConferenciaRouteImport } from './routes/_authenticated/conferencia'
 import { Route as AuthenticatedContratosRouteImport } from './routes/_authenticated/contratos'
 import { Route as AuthenticatedDiaristasRouteImport } from './routes/_authenticated/diaristas'
+import { Route as AuthenticatedDivergenciasRouteImport } from './routes/_authenticated/divergencias'
+import { Route as AuthenticatedDocumentosRouteImport } from './routes/_authenticated/documentos'
+import { Route as AuthenticatedEfetivoRouteImport } from './routes/_authenticated/efetivo'
 import { Route as AuthenticatedEscalasRouteImport } from './routes/_authenticated/escalas'
+import { Route as AuthenticatedFechamentosRouteImport } from './routes/_authenticated/fechamentos'
 import { Route as AuthenticatedFuncionariosRouteImport } from './routes/_authenticated/funcionarios'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as AuthenticatedPostosRouteImport } from './routes/_authenticated/postos'
+import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
+import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -56,11 +62,33 @@ const AuthenticatedDiaristasRoute = AuthenticatedDiaristasRouteImport.update({
   path: '/diaristas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedDivergenciasRoute =
+  AuthenticatedDivergenciasRouteImport.update({
+    id: '/divergencias',
+    path: '/divergencias',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedDocumentosRoute = AuthenticatedDocumentosRouteImport.update({
+  id: '/documentos',
+  path: '/documentos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedEfetivoRoute = AuthenticatedEfetivoRouteImport.update({
+  id: '/efetivo',
+  path: '/efetivo',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedEscalasRoute = AuthenticatedEscalasRouteImport.update({
   id: '/escalas',
   path: '/escalas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedFechamentosRoute =
+  AuthenticatedFechamentosRouteImport.update({
+    id: '/fechamentos',
+    path: '/fechamentos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedFuncionariosRoute =
   AuthenticatedFuncionariosRouteImport.update({
     id: '/funcionarios',
@@ -77,6 +105,16 @@ const AuthenticatedPostosRoute = AuthenticatedPostosRouteImport.update({
   path: '/postos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedRelatoriosRoute = AuthenticatedRelatoriosRouteImport.update({
+  id: '/relatorios',
+  path: '/relatorios',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
+  id: '/usuarios',
+  path: '/usuarios',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -85,10 +123,16 @@ export interface FileRoutesByFullPath {
   '/conferencia': typeof AuthenticatedConferenciaRoute
   '/contratos': typeof AuthenticatedContratosRoute
   '/diaristas': typeof AuthenticatedDiaristasRoute
+  '/divergencias': typeof AuthenticatedDivergenciasRoute
+  '/documentos': typeof AuthenticatedDocumentosRoute
+  '/efetivo': typeof AuthenticatedEfetivoRoute
   '/escalas': typeof AuthenticatedEscalasRoute
+  '/fechamentos': typeof AuthenticatedFechamentosRoute
   '/funcionarios': typeof AuthenticatedFuncionariosRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/postos': typeof AuthenticatedPostosRoute
+  '/relatorios': typeof AuthenticatedRelatoriosRoute
+  '/usuarios': typeof AuthenticatedUsuariosRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -97,10 +141,16 @@ export interface FileRoutesByTo {
   '/conferencia': typeof AuthenticatedConferenciaRoute
   '/contratos': typeof AuthenticatedContratosRoute
   '/diaristas': typeof AuthenticatedDiaristasRoute
+  '/divergencias': typeof AuthenticatedDivergenciasRoute
+  '/documentos': typeof AuthenticatedDocumentosRoute
+  '/efetivo': typeof AuthenticatedEfetivoRoute
   '/escalas': typeof AuthenticatedEscalasRoute
+  '/fechamentos': typeof AuthenticatedFechamentosRoute
   '/funcionarios': typeof AuthenticatedFuncionariosRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/postos': typeof AuthenticatedPostosRoute
+  '/relatorios': typeof AuthenticatedRelatoriosRoute
+  '/usuarios': typeof AuthenticatedUsuariosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -111,10 +161,16 @@ export interface FileRoutesById {
   '/_authenticated/conferencia': typeof AuthenticatedConferenciaRoute
   '/_authenticated/contratos': typeof AuthenticatedContratosRoute
   '/_authenticated/diaristas': typeof AuthenticatedDiaristasRoute
+  '/_authenticated/divergencias': typeof AuthenticatedDivergenciasRoute
+  '/_authenticated/documentos': typeof AuthenticatedDocumentosRoute
+  '/_authenticated/efetivo': typeof AuthenticatedEfetivoRoute
   '/_authenticated/escalas': typeof AuthenticatedEscalasRoute
+  '/_authenticated/fechamentos': typeof AuthenticatedFechamentosRoute
   '/_authenticated/funcionarios': typeof AuthenticatedFuncionariosRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/postos': typeof AuthenticatedPostosRoute
+  '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
+  '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -125,10 +181,16 @@ export interface FileRouteTypes {
     | '/conferencia'
     | '/contratos'
     | '/diaristas'
+    | '/divergencias'
+    | '/documentos'
+    | '/efetivo'
     | '/escalas'
+    | '/fechamentos'
     | '/funcionarios'
     | '/painel'
     | '/postos'
+    | '/relatorios'
+    | '/usuarios'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -137,10 +199,16 @@ export interface FileRouteTypes {
     | '/conferencia'
     | '/contratos'
     | '/diaristas'
+    | '/divergencias'
+    | '/documentos'
+    | '/efetivo'
     | '/escalas'
+    | '/fechamentos'
     | '/funcionarios'
     | '/painel'
     | '/postos'
+    | '/relatorios'
+    | '/usuarios'
   id:
     | '__root__'
     | '/'
@@ -150,10 +218,16 @@ export interface FileRouteTypes {
     | '/_authenticated/conferencia'
     | '/_authenticated/contratos'
     | '/_authenticated/diaristas'
+    | '/_authenticated/divergencias'
+    | '/_authenticated/documentos'
+    | '/_authenticated/efetivo'
     | '/_authenticated/escalas'
+    | '/_authenticated/fechamentos'
     | '/_authenticated/funcionarios'
     | '/_authenticated/painel'
     | '/_authenticated/postos'
+    | '/_authenticated/relatorios'
+    | '/_authenticated/usuarios'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -213,11 +287,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDiaristasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/divergencias': {
+      id: '/_authenticated/divergencias'
+      path: '/divergencias'
+      fullPath: '/divergencias'
+      preLoaderRoute: typeof AuthenticatedDivergenciasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/documentos': {
+      id: '/_authenticated/documentos'
+      path: '/documentos'
+      fullPath: '/documentos'
+      preLoaderRoute: typeof AuthenticatedDocumentosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/efetivo': {
+      id: '/_authenticated/efetivo'
+      path: '/efetivo'
+      fullPath: '/efetivo'
+      preLoaderRoute: typeof AuthenticatedEfetivoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/escalas': {
       id: '/_authenticated/escalas'
       path: '/escalas'
       fullPath: '/escalas'
       preLoaderRoute: typeof AuthenticatedEscalasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/fechamentos': {
+      id: '/_authenticated/fechamentos'
+      path: '/fechamentos'
+      fullPath: '/fechamentos'
+      preLoaderRoute: typeof AuthenticatedFechamentosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/funcionarios': {
@@ -241,6 +343,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPostosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/relatorios': {
+      id: '/_authenticated/relatorios'
+      path: '/relatorios'
+      fullPath: '/relatorios'
+      preLoaderRoute: typeof AuthenticatedRelatoriosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/usuarios': {
+      id: '/_authenticated/usuarios'
+      path: '/usuarios'
+      fullPath: '/usuarios'
+      preLoaderRoute: typeof AuthenticatedUsuariosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -249,10 +365,16 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedConferenciaRoute: typeof AuthenticatedConferenciaRoute
   AuthenticatedContratosRoute: typeof AuthenticatedContratosRoute
   AuthenticatedDiaristasRoute: typeof AuthenticatedDiaristasRoute
+  AuthenticatedDivergenciasRoute: typeof AuthenticatedDivergenciasRoute
+  AuthenticatedDocumentosRoute: typeof AuthenticatedDocumentosRoute
+  AuthenticatedEfetivoRoute: typeof AuthenticatedEfetivoRoute
   AuthenticatedEscalasRoute: typeof AuthenticatedEscalasRoute
+  AuthenticatedFechamentosRoute: typeof AuthenticatedFechamentosRoute
   AuthenticatedFuncionariosRoute: typeof AuthenticatedFuncionariosRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
   AuthenticatedPostosRoute: typeof AuthenticatedPostosRoute
+  AuthenticatedRelatoriosRoute: typeof AuthenticatedRelatoriosRoute
+  AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -260,10 +382,16 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedConferenciaRoute: AuthenticatedConferenciaRoute,
   AuthenticatedContratosRoute: AuthenticatedContratosRoute,
   AuthenticatedDiaristasRoute: AuthenticatedDiaristasRoute,
+  AuthenticatedDivergenciasRoute: AuthenticatedDivergenciasRoute,
+  AuthenticatedDocumentosRoute: AuthenticatedDocumentosRoute,
+  AuthenticatedEfetivoRoute: AuthenticatedEfetivoRoute,
   AuthenticatedEscalasRoute: AuthenticatedEscalasRoute,
+  AuthenticatedFechamentosRoute: AuthenticatedFechamentosRoute,
   AuthenticatedFuncionariosRoute: AuthenticatedFuncionariosRoute,
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
   AuthenticatedPostosRoute: AuthenticatedPostosRoute,
+  AuthenticatedRelatoriosRoute: AuthenticatedRelatoriosRoute,
+  AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
