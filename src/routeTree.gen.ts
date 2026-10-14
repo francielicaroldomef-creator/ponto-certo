@@ -14,7 +14,12 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedCoberturasRouteImport } from './routes/_authenticated/coberturas'
 import { Route as AuthenticatedConferenciaRouteImport } from './routes/_authenticated/conferencia'
+import { Route as AuthenticatedContratosRouteImport } from './routes/_authenticated/contratos'
+import { Route as AuthenticatedDiaristasRouteImport } from './routes/_authenticated/diaristas'
+import { Route as AuthenticatedEscalasRouteImport } from './routes/_authenticated/escalas'
+import { Route as AuthenticatedFuncionariosRouteImport } from './routes/_authenticated/funcionarios'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
+import { Route as AuthenticatedPostosRouteImport } from './routes/_authenticated/postos'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -41,9 +46,35 @@ const AuthenticatedConferenciaRoute =
     path: '/conferencia',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedContratosRoute = AuthenticatedContratosRouteImport.update({
+  id: '/contratos',
+  path: '/contratos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDiaristasRoute = AuthenticatedDiaristasRouteImport.update({
+  id: '/diaristas',
+  path: '/diaristas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedEscalasRoute = AuthenticatedEscalasRouteImport.update({
+  id: '/escalas',
+  path: '/escalas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFuncionariosRoute =
+  AuthenticatedFuncionariosRouteImport.update({
+    id: '/funcionarios',
+    path: '/funcionarios',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
   id: '/painel',
   path: '/painel',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPostosRoute = AuthenticatedPostosRouteImport.update({
+  id: '/postos',
+  path: '/postos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 
@@ -52,14 +83,24 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/coberturas': typeof AuthenticatedCoberturasRoute
   '/conferencia': typeof AuthenticatedConferenciaRoute
+  '/contratos': typeof AuthenticatedContratosRoute
+  '/diaristas': typeof AuthenticatedDiaristasRoute
+  '/escalas': typeof AuthenticatedEscalasRoute
+  '/funcionarios': typeof AuthenticatedFuncionariosRoute
   '/painel': typeof AuthenticatedPainelRoute
+  '/postos': typeof AuthenticatedPostosRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/coberturas': typeof AuthenticatedCoberturasRoute
   '/conferencia': typeof AuthenticatedConferenciaRoute
+  '/contratos': typeof AuthenticatedContratosRoute
+  '/diaristas': typeof AuthenticatedDiaristasRoute
+  '/escalas': typeof AuthenticatedEscalasRoute
+  '/funcionarios': typeof AuthenticatedFuncionariosRoute
   '/painel': typeof AuthenticatedPainelRoute
+  '/postos': typeof AuthenticatedPostosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -68,13 +109,38 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/coberturas': typeof AuthenticatedCoberturasRoute
   '/_authenticated/conferencia': typeof AuthenticatedConferenciaRoute
+  '/_authenticated/contratos': typeof AuthenticatedContratosRoute
+  '/_authenticated/diaristas': typeof AuthenticatedDiaristasRoute
+  '/_authenticated/escalas': typeof AuthenticatedEscalasRoute
+  '/_authenticated/funcionarios': typeof AuthenticatedFuncionariosRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
+  '/_authenticated/postos': typeof AuthenticatedPostosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/coberturas' | '/conferencia' | '/painel'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/coberturas'
+    | '/conferencia'
+    | '/contratos'
+    | '/diaristas'
+    | '/escalas'
+    | '/funcionarios'
+    | '/painel'
+    | '/postos'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/coberturas' | '/conferencia' | '/painel'
+  to:
+    | '/'
+    | '/auth'
+    | '/coberturas'
+    | '/conferencia'
+    | '/contratos'
+    | '/diaristas'
+    | '/escalas'
+    | '/funcionarios'
+    | '/painel'
+    | '/postos'
   id:
     | '__root__'
     | '/'
@@ -82,7 +148,12 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/coberturas'
     | '/_authenticated/conferencia'
+    | '/_authenticated/contratos'
+    | '/_authenticated/diaristas'
+    | '/_authenticated/escalas'
+    | '/_authenticated/funcionarios'
     | '/_authenticated/painel'
+    | '/_authenticated/postos'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -128,11 +199,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConferenciaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/contratos': {
+      id: '/_authenticated/contratos'
+      path: '/contratos'
+      fullPath: '/contratos'
+      preLoaderRoute: typeof AuthenticatedContratosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/diaristas': {
+      id: '/_authenticated/diaristas'
+      path: '/diaristas'
+      fullPath: '/diaristas'
+      preLoaderRoute: typeof AuthenticatedDiaristasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/escalas': {
+      id: '/_authenticated/escalas'
+      path: '/escalas'
+      fullPath: '/escalas'
+      preLoaderRoute: typeof AuthenticatedEscalasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/funcionarios': {
+      id: '/_authenticated/funcionarios'
+      path: '/funcionarios'
+      fullPath: '/funcionarios'
+      preLoaderRoute: typeof AuthenticatedFuncionariosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/painel': {
       id: '/_authenticated/painel'
       path: '/painel'
       fullPath: '/painel'
       preLoaderRoute: typeof AuthenticatedPainelRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/postos': {
+      id: '/_authenticated/postos'
+      path: '/postos'
+      fullPath: '/postos'
+      preLoaderRoute: typeof AuthenticatedPostosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
   }
@@ -141,13 +247,23 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedCoberturasRoute: typeof AuthenticatedCoberturasRoute
   AuthenticatedConferenciaRoute: typeof AuthenticatedConferenciaRoute
+  AuthenticatedContratosRoute: typeof AuthenticatedContratosRoute
+  AuthenticatedDiaristasRoute: typeof AuthenticatedDiaristasRoute
+  AuthenticatedEscalasRoute: typeof AuthenticatedEscalasRoute
+  AuthenticatedFuncionariosRoute: typeof AuthenticatedFuncionariosRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
+  AuthenticatedPostosRoute: typeof AuthenticatedPostosRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCoberturasRoute: AuthenticatedCoberturasRoute,
   AuthenticatedConferenciaRoute: AuthenticatedConferenciaRoute,
+  AuthenticatedContratosRoute: AuthenticatedContratosRoute,
+  AuthenticatedDiaristasRoute: AuthenticatedDiaristasRoute,
+  AuthenticatedEscalasRoute: AuthenticatedEscalasRoute,
+  AuthenticatedFuncionariosRoute: AuthenticatedFuncionariosRoute,
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
+  AuthenticatedPostosRoute: AuthenticatedPostosRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
