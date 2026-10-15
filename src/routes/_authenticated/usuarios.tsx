@@ -46,7 +46,7 @@ function Usuarios() {
   const nameOf = (id: string | null) => users?.find((u) => u.id === id)?.full_name ?? users?.find((u) => u.id === id)?.email ?? "—";
 
   const toggle = async (uid: string, role: Role, on: boolean) => {
-    if (!on && role === "admin" && uid === me?.user.id) return toast.error("Você não pode remover seu próprio perfil de administrador.");
+    if (!on && role === "admin" && uid === me?.user.id) { toast.error("Você não pode remover seu próprio perfil de administrador."); return; }
     const { error } = on
       ? await supabase.from("user_roles").insert({ user_id: uid, role })
       : await supabase.from("user_roles").delete().eq("user_id", uid).eq("role", role);

@@ -62,7 +62,7 @@ function Documentos() {
 
   const process = async () => {
     if (!file || !contract) return;
-    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) return toast.error("Envie um arquivo PDF.");
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) { toast.error("Envie um arquivo PDF."); return; }
     setBusy(true);
     try {
       const buf = await file.arrayBuffer();
@@ -70,14 +70,14 @@ function Documentos() {
       const { data: dup } = await supabase.from("timesheet_docs").select("id, file_name").eq("contract_id", contract).eq("file_hash", hash).limit(1);
       const path = `${contract}/${Date.now()}-${file.name.replace(/[^\w.\-]/g, "_")}`;
       if (dup && dup.length) {
-        await supabase.from("timesheet_docs").insert({ contract_id: contract, period_start: from, period_end: to, file_name: file.name, file_hash: hash, uploaded_by: me?.user.id, status: "duplicado", errors: `Mesmo arquivo já enviado (${dup[0]!.file_name}).` });
+        await supabase.from("timesheet_docs").insert({ contract_id: contract, period_start: from, period_end: to, file_name: file.name, file_hash: hash, uploaded_by: me?.user.id ?? null, status: "duplicado", errors: `Mesmo arquivo já enviado (${dup[0]!.file_name}).` });
         toast.warning("Arquivo já enviado anteriormente — registrado como duplicado.");
         return;
       }
       const up = await supabase.storage.from("timesheets").upload(path, file, { contentType: "application/pdf" });
       const { data: doc, error: e1 } = await supabase.from("timesheet_docs").insert({
         contract_id: contract, period_start: from, period_end: to, file_name: file.name, file_hash: hash,
-        file_path: up.error ? null : path, uploaded_by: me?.user.id, status: "enviado",
+        file_path: up.error ? null : path, uploaded_by: me?.user.id ?? null, status: "enviado",
         errors: up.error ? `Arquivo não armazenado: ${up.error.message}` : null,
       }).select().single();
       if (e1) throw e1;
