@@ -50,9 +50,9 @@ function Divergencias() {
   const open = all.filter((d: any) => d.status === "aberta");
 
   const resolve = async () => {
-    if (resolution.trim().length < 5) return toast.error("Descreva a resolução (mín. 5 caracteres).");
-    const { error } = await supabase.from("divergences").update({ status: "resolvida", resolution, excluded_from_totals: exclude, resolved_by: me?.user.id, resolved_at: new Date().toISOString() }).eq("id", sel.id);
-    if (error) return toast.error(errMsg(error));
+    if (resolution.trim().length < 5) { toast.error("Descreva a resolução (mín. 5 caracteres)."); return; }
+    const { error } = await supabase.from("divergences").update({ status: "resolvida", resolution, excluded_from_totals: exclude, resolved_by: me?.user.id ?? null, resolved_at: new Date().toISOString() }).eq("id", sel.id);
+    if (error) { toast.error(errMsg(error)); return; }
     toast.success("Divergência resolvida.");
     setSel(null);
     qc.invalidateQueries({ queryKey: ["divergences"] });

@@ -51,27 +51,27 @@ function Fechamentos() {
 
   const close = async () => {
     if (!period || !t) return;
-    if (period.provisional) return toast.error("Há presenças não informadas ou divergências abertas. Resolva antes de fechar.");
-    if (Number.isNaN(appliedNum)) return toast.error("Valor aplicado inválido.");
-    if (differs && reason.trim().length < 5) return toast.error("Informe o motivo da diferença entre previsto e aplicado.");
+    if (period.provisional) { toast.error("Há presenças não informadas ou divergências abertas. Resolva antes de fechar."); return; }
+    if (Number.isNaN(appliedNum)) { toast.error("Valor aplicado inválido."); return; }
+    if (differs && reason.trim().length < 5) { toast.error("Informe o motivo da diferença entre previsto e aplicado."); return; }
     const overlap = (closings ?? []).find((c: any) => c.status === "fechado" && c.period_start <= to && c.period_end >= from);
-    if (overlap) return toast.error(`Já existe fechamento para ${fmtDate(overlap.period_start)} a ${fmtDate(overlap.period_end)}.`);
+    if (overlap) { toast.error(`Já existe fechamento para ${fmtDate(overlap.period_start)} a ${fmtDate(overlap.period_end)}.`); return; }
     const snapshot = { totals: t, rows: period.rows.length, coverages: period.coverages.length, generated_at: new Date().toISOString() };
     const existing = (closings ?? []).find((c: any) => c.status === "aberto" && c.period_start === from && c.period_end === to);
     const payload = {
       contract_id: contract, period_start: from, period_end: to, status: "fechado", predicted_discount: predicted,
       coverage_cost: t.coverageCostCents / 100, applied_discount: appliedNum, difference_reason: differs ? reason : null,
-      snapshot: snapshot as any, closed_at: new Date().toISOString(), closed_by: me?.user.id,
+      snapshot: snapshot as any, closed_at: new Date().toISOString(), closed_by: me?.user.id ?? null,
     };
     const { error } = existing ? await supabase.from("closings").update(payload).eq("id", existing.id) : await supabase.from("closings").insert(payload);
-    if (error) return toast.error(errMsg(error));
+    if (error) { toast.error(errMsg(error)); return; }
     toast.success("Período fechado. Lançamentos do período estão bloqueados.");
     setApplied(""); setReason(""); refresh();
   };
   const doReopen = async () => {
-    if (reopenReason.trim().length < 5) return toast.error("Informe o motivo da reabertura.");
+    if (reopenReason.trim().length < 5) { toast.error("Informe o motivo da reabertura."); return; }
     const { error } = await supabase.from("closings").update({ status: "aberto", reopen_reason: reopenReason }).eq("id", reopen.id);
-    if (error) return toast.error(errMsg(error));
+    if (error) { toast.error(errMsg(error)); return; }
     toast.success("Período reaberto."); setReopen(null); setReopenReason(""); refresh();
   };
 
