@@ -37,7 +37,7 @@ function Efetivo() {
       else if (st === "falta_parcial") e.partial++;
       else if (st) e.absent++;
       // a post counts as filled if the person worked or the whole need was covered
-      const filled = st === "presente" || st === "falta_parcial" || (r.result.needMin > 0 && r.result.uncoveredMin === 0);
+      const filled = st === "presente" || (r.result.needMin > 0 && r.result.coveredMin === r.result.needMin);
       if (filled && st !== "presente" && st !== "falta_parcial") e.covered++;
       if (filled) e.effective++;
       m.set(d, e);
