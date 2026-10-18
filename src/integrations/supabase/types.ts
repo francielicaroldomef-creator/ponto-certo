@@ -14,6 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
+      absence_treatments: {
+        Row: {
+          active: boolean
+          attendance_id: string
+          authorized_by: string | null
+          contract_id: string
+          created_at: string
+          created_by: string | null
+          end_time: string
+          id: string
+          kind: string
+          reason: string | null
+          start_time: string
+          support_doc: string | null
+          updated_at: string
+          updated_by: string | null
+          work_date: string
+        }
+        Insert: {
+          active?: boolean
+          attendance_id: string
+          authorized_by?: string | null
+          contract_id: string
+          created_at?: string
+          created_by?: string | null
+          end_time: string
+          id?: string
+          kind: string
+          reason?: string | null
+          start_time: string
+          support_doc?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          work_date: string
+        }
+        Update: {
+          active?: boolean
+          attendance_id?: string
+          authorized_by?: string | null
+          contract_id?: string
+          created_at?: string
+          created_by?: string | null
+          end_time?: string
+          id?: string
+          kind?: string
+          reason?: string | null
+          start_time?: string
+          support_doc?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          work_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "absence_treatments_attendance_id_fkey"
+            columns: ["attendance_id"]
+            isOneToOne: false
+            referencedRelation: "attendance"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "absence_treatments_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance: {
         Row: {
           absent_intervals: Json
@@ -255,6 +324,7 @@ export type Database = {
           seed_key: string | null
           start_time: string
           status: string
+          supervisor_id: string | null
           work_date: string
         }
         Insert: {
@@ -276,6 +346,7 @@ export type Database = {
           seed_key?: string | null
           start_time: string
           status?: string
+          supervisor_id?: string | null
           work_date: string
         }
         Update: {
@@ -297,6 +368,7 @@ export type Database = {
           seed_key?: string | null
           start_time?: string
           status?: string
+          supervisor_id?: string | null
           work_date?: string
         }
         Relationships: [
@@ -333,6 +405,13 @@ export type Database = {
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coverages_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -836,6 +915,10 @@ export type Database = {
     Functions: {
       can_access_contract: { Args: { _contract: string }; Returns: boolean }
       can_write_ops: { Args: { _contract: string }; Returns: boolean }
+      coverage_has_minute: {
+        Args: { c: Database["public"]["Tables"]["coverages"]["Row"]; m: string }
+        Returns: boolean
+      }
       generate_schedules: {
         Args: { _contract: string; _from: string; _to: string }
         Returns: number
@@ -852,6 +935,17 @@ export type Database = {
         Returns: boolean
       }
       is_staff_all: { Args: { _uid: string }; Returns: boolean }
+      list_coverage_supervisors: {
+        Args: never
+        Returns: {
+          full_name: string
+          id: string
+        }[]
+      }
+      pending_treatment_minutes: {
+        Args: { cid: string; d1: string; d2: string }
+        Returns: number
+      }
       seed_demo: { Args: never; Returns: string }
     }
     Enums: {
