@@ -59,8 +59,9 @@ export function total(list: Interval[]): number {
 
 /** Working intervals of a shift, excluding the lunch break. */
 export function workIntervals(start: string, end: string, bs?: string | null, be?: string | null): Interval[] {
-  const s = toMin(start)!;
-  const e = toMin(end)!;
+  const s = toMin(start);
+  const e = toMin(end);
+  if (s === null || e === null) return [];
   const b1 = toMin(bs ?? null);
   const b2 = toMin(be ?? null);
   const base: Interval[] = [[s, e]];
@@ -101,7 +102,10 @@ export function absenceIntervals(s: ScheduleLike, a: AttendanceLike | null | und
   const work = workIntervals(s.start_time, s.end_time, s.break_start, s.break_end);
   if (a.status === "falta_integral") return work;
   if (a.status === "falta_parcial") {
-    const given: Interval[] = (a.absent_intervals ?? []).map((i) => [toMin(i.start)!, toMin(i.end)!]);
+    const given: Interval[] = (a.absent_intervals ?? []).flatMap((i) => {
+      const start = toMin(i.start), end = toMin(i.end);
+      return start === null || end === null ? [] : [[start, end] as Interval];
+    });
     return intersect(given, work);
   }
   return [];
@@ -130,21 +134,34 @@ export interface PostDayResult {
   absentMin: number;
   needMin: number;
   coveredMin: number;
+  waivedMin: number;
+  pendingMin: number;
   uncoveredMin: number;
   discountCents: number;
   coverageCostCents: number;
   uncoveredIntervals: Interval[];
 }
 
+export interface TreatmentLike {
+  kind: string;
+  start_time: string;
+  end_time: string;
+  active?: boolean;
+}
+
 /** Result for one scheduled person/post/day given the coverages of that post on that day. */
-export function computePostDay(s: ScheduleLike, a: AttendanceLike | null | undefined, coverages: CoverageLike[]): PostDayResult {
+export function computePostDay(s: ScheduleLike, a: AttendanceLike | null | undefined, coverages: CoverageLike[], treatments: TreatmentLike[] = []): PostDayResult {
   const work = workIntervals(s.start_time, s.end_time, s.break_start, s.break_end);
   const absent = absenceIntervals(s, a);
   const need = needIntervals(s, a);
   const realized = coverages.filter((c) => c.status === "realizada");
   const covUnion = normalize(realized.flatMap(coverageIntervals));
   const covered = intersect(need, covUnion);
-  const uncovered = subtract(need, covered);
+  const treatmentIntervals = (kind: string) => treatments.filter(t => t.active !== false && t.kind === kind).flatMap(t => workIntervals(t.start_time, t.end_time));
+  const waived = subtract(intersect(need, treatmentIntervals("dispensa")), covered);
+  const uncovered = subtract(need, [...covered, ...waived]);
+  const discounted = intersect(uncovered, treatmentIntervals("desconto"));
+  const pending = subtract(uncovered, discounted);
   const uncoveredMin = total(uncovered);
   const hourCents = toCents(a?.hour_value ?? 0);
   return {
@@ -152,6 +169,8 @@ export function computePostDay(s: ScheduleLike, a: AttendanceLike | null | undef
     absentMin: total(absent),
     needMin: total(need),
     coveredMin: total(covered),
+    waivedMin: total(waived),
+    pendingMin: total(pending),
     uncoveredMin,
     discountCents: Math.round((uncoveredMin * hourCents) / 60),
     coverageCostCents: realized.reduce((acc, c) => acc + toCents(c.agreed_value), 0),
@@ -164,19 +183,23 @@ export interface Totals {
   partial: number;
   absentMin: number;
   coveredMin: number;
+  waivedMin: number;
+  pendingMin: number;
   uncoveredMin: number;
   discountCents: number;
   coverageCostCents: number;
   impactCents: number;
 }
 export function emptyTotals(): Totals {
-  return { integral: 0, partial: 0, absentMin: 0, coveredMin: 0, uncoveredMin: 0, discountCents: 0, coverageCostCents: 0, impactCents: 0 };
+  return { integral: 0, partial: 0, absentMin: 0, coveredMin: 0, waivedMin: 0, pendingMin: 0, uncoveredMin: 0, discountCents: 0, coverageCostCents: 0, impactCents: 0 };
 }
 export function addToTotals(t: Totals, a: AttendanceLike | null | undefined, r: PostDayResult): Totals {
   if (a?.status === "falta_integral") t.integral++;
   if (a?.status === "falta_parcial") t.partial++;
   t.absentMin += r.absentMin;
   t.coveredMin += r.coveredMin;
+  t.waivedMin += r.waivedMin;
+  t.pendingMin += r.pendingMin;
   t.uncoveredMin += r.uncoveredMin;
   t.discountCents += r.discountCents;
   t.coverageCostCents += r.coverageCostCents;
