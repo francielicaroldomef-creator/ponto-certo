@@ -6,3 +6,7 @@
 - [x] 5. Upload/extração de PDF e fila de divergências
 - [x] 6. Efetivo, relatórios, fechamentos e usuários (testado: todas as telas abrem sem erro)
 - [ ] OCR de PDFs digitalizados (depende de serviço externo)
+- [ ] Tratamentos da ausência na Conferência Diária, cálculos e persistência
+- [ ] Dispensas auditadas, conflitos e bloqueio de fechamento por tratamento pendente
+- [ ] Indicadores, relatórios e exportações com cobertura, dispensa e pendências
+- [ ] Validar exemplos A–F e fluxo de tratamento na tela
