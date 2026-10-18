@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Lock, Unlock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { errMsg, loadPeriod } from "@/lib/data";
-import { brl, brlValue, fmtDate, fmtDateTime } from "@/lib/format";
+import { brl, brlValue, fmtDate, fmtDateTime, hours } from "@/lib/format";
 import { useMe } from "@/hooks/use-auth";
 import { ContractSelect, DataTable, Field, PageHeader, Pill, Stat, useDefaultContract } from "@/components/ui-kit";
 import { DatePicker } from "@/components/date-picker";
@@ -51,12 +51,12 @@ function Fechamentos() {
 
   const close = async () => {
     if (!period || !t) return;
-    if (period.provisional) { toast.error("Há presenças não informadas ou divergências abertas. Resolva antes de fechar."); return; }
+    if (period.provisional) { toast.error("Há presenças, tratamentos ou divergências pendentes. Resolva antes de fechar."); return; }
     if (Number.isNaN(appliedNum)) { toast.error("Valor aplicado inválido."); return; }
     if (differs && reason.trim().length < 5) { toast.error("Informe o motivo da diferença entre previsto e aplicado."); return; }
     const overlap = (closings ?? []).find((c: any) => c.status === "fechado" && c.period_start <= to && c.period_end >= from);
     if (overlap) { toast.error(`Já existe fechamento para ${fmtDate(overlap.period_start)} a ${fmtDate(overlap.period_end)}.`); return; }
-    const snapshot = { totals: t, rows: period.rows.length, coverages: period.coverages.length, generated_at: new Date().toISOString() };
+    const snapshot = { totals: t, rows: period.rows.length, coverages: period.coverages.length, dayRows: period.rows, coverageRows: period.coverages, treatments: period.treatments, generated_at: new Date().toISOString() };
     const existing = (closings ?? []).find((c: any) => c.status === "aberto" && c.period_start === from && c.period_end === to);
     const payload = {
       contract_id: contract, period_start: from, period_end: to, status: "fechado", predicted_discount: predicted,
@@ -88,6 +88,8 @@ function Fechamentos() {
         <Stat label="Custo de coberturas" value={brl(t?.coverageCostCents ?? 0)} tone="info" />
         <Stat label="Presenças pendentes" value={period?.notInformed ?? 0} tone={period?.notInformed ? "warning" : "success"} />
         <Stat label="Divergências abertas" value={period?.openCalcDivergences ?? 0} tone={period?.openCalcDivergences ? "warning" : "success"} />
+        <Stat label="Tratamento pendente" value={hours(t?.pendingMin ?? 0)} tone={t?.pendingMin ? "warning" : "success"} />
+        <Stat label="Dispensa sem desconto" value={hours(t?.waivedMin ?? 0)} tone="info" />
       </div>
       {canClose && (
         <Card className="mb-6">
@@ -98,7 +100,7 @@ function Fechamentos() {
             <Field label={differs ? "Motivo da diferença (obrigatório)" : "Motivo da diferença"}>
               <Textarea rows={1} value={reason} onChange={(e) => setReason(e.target.value)} disabled={!differs} />
             </Field>
-            <Button onClick={close} disabled={!period}><Lock className="mr-2 h-4 w-4" />Fechar período</Button>
+            <Button onClick={close} disabled={!period || period.provisional}><Lock className="mr-2 h-4 w-4" />Fechar período</Button>
             {period?.provisional && <p className="text-sm text-warning-foreground sm:col-span-3">O período ainda está provisório e não pode ser fechado.</p>}
           </CardContent>
         </Card>

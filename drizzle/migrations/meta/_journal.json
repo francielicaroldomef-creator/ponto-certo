@@ -8,6 +8,13 @@
       "when": 1792004139671,
       "tag": "0000_portal_supervisor_core",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792358951288,
+      "tag": "0001_absence_interval_treatments",
+      "breakpoints": true
     }
   ]
 }

@@ -15,6 +15,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AbsenceTreatment } from "@/components/absence-treatment";
+import { useMe } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/conferencia")({
   head: () => ({ meta: [{ title: "Conferência diária — Portal do Supervisor" }] }),
@@ -25,6 +27,13 @@ function Conferencia() {
   const [contract, setContract] = useDefaultContract();
   const [date, setDate] = useState("2026-10-05");
   const qc = useQueryClient();
+  const { data: me } = useMe();
+  const { data: closed } = useQuery({ queryKey: ["period-locked", contract, date], enabled: !!contract, queryFn: async () => {
+    const { data, error } = await supabase.rpc("is_period_closed", { _contract: contract, _d: date });
+    if (error) throw error;
+    return data;
+  } });
+  const canEdit = !!me?.has("admin", "supervisor", "conferente") && closed === false;
   const key = ["period", contract, date, date];
   const { data, isLoading } = useQuery({ queryKey: key, queryFn: () => loadPeriod(contract, date, date), enabled: !!contract });
   const [edit, setEdit] = useState<DayRow | null>(null);
@@ -54,24 +63,27 @@ function Conferencia() {
   return (
     <div>
       <PageHeader title="Conferência diária" description="Registre a situação de cada pessoa prevista na escala."
-        actions={<Button disabled={!pending.length} onClick={() => setBatchOpen(true)}><CheckCheck className="mr-2 h-4 w-4" />Marcar não informados como presentes</Button>} />
+        actions={<Button disabled={!pending.length || !canEdit} onClick={() => setBatchOpen(true)}><CheckCheck className="mr-2 h-4 w-4" />Marcar não informados como presentes</Button>} />
       <div className="mb-4 flex flex-col gap-2 sm:flex-row">
         <ContractSelect value={contract} onChange={setContract} />
         <DatePicker value={date} onChange={setDate} />
       </div>
-      {data && (
+      {closed && <p className="mb-4 text-sm text-muted-foreground">Período fechado — somente consulta.</p>}
+      {data && t && (
         <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-6">
           <Stat label="Previstos" value={data.rows.length} />
           <Stat label="Não informados" value={data.notInformed} tone={data.notInformed ? "warning" : "success"} />
-          <Stat label="Faltas" value={`${t!.integral} int. / ${t!.partial} parc.`} hint={hours(t!.absentMin) + " ausentes"} tone="danger" />
-          <Stat label="Horas descobertas" value={hours(t!.uncoveredMin)} hint={hours(t!.coveredMin) + " cobertas"} tone="warning" />
-          <Stat label="Desconto previsto" value={brl(t!.discountCents)} hint={data.provisional ? "Provisório" : "Revisado"} tone="danger" />
-          <Stat label="Custo coberturas" value={brl(t!.coverageCostCents)} hint={`Impacto: ${brl(t!.impactCents)}`} tone="info" />
+          <Stat label="Faltas" value={`${t.integral} int. / ${t.partial} parc.`} hint={hours(t.absentMin) + " ausentes"} tone="danger" />
+          <Stat label="Horas a descontar" value={hours(t.uncoveredMin)} hint={hours(t.coveredMin) + " cobertas"} tone="warning" />
+          <Stat label="Dispensa sem desconto" value={hours(t.waivedMin)} tone="info" />
+          <Stat label="Tratamento pendente" value={hours(t.pendingMin)} tone={t.pendingMin ? "warning" : "success"} />
+          <Stat label="Desconto previsto" value={brl(t.discountCents)} hint={data.provisional ? "Provisório" : "Revisado"} tone="danger" />
+          <Stat label="Custo coberturas" value={brl(t.coverageCostCents)} hint={`Impacto: ${brl(t.impactCents)}`} tone="info" />
         </div>
       )}
       {data?.provisional && (
         <p className="mb-4 rounded-md border border-warning/40 bg-warning/15 px-3 py-2 text-sm text-warning-foreground">
-          Totais provisórios: {data.notInformed} não informado(s) e {data.openCalcDivergences} divergência(s) aberta(s) que afetam o cálculo.{" "}
+          Totais provisórios: {data.notInformed} não informado(s), {hours(data.totals.pendingMin)} com tratamento pendente e {data.openCalcDivergences} divergência(s) aberta(s).{" "}
           <Link to="/divergencias" className="underline">Ver divergências</Link>
         </p>
       )}
@@ -84,7 +96,7 @@ function Conferencia() {
           empty="Nenhuma pessoa prevista na escala para esta data."
           cols={[
             { header: "Matrícula", cell: (r) => <span className="font-mono text-xs">{r.employee?.registration}</span> },
-            { header: "Funcionário", cell: (r) => <div><p className="font-medium">{r.employee?.name}</p><p className="text-xs text-muted-foreground">{r.post?.code} · {hhmm(r.schedule.start_time)}–{hhmm(r.schedule.end_time)}</p></div> },
+            { header: "Funcionário", cell: (r) => <div><p className="font-medium">{r.employee?.name}</p><p className="text-xs text-muted-foreground">{r.post?.code} · {hhmm(r.schedule.start_time)}–{hhmm(r.schedule.end_time)}</p>{r.result.needMin > 0 && <><p className="mt-1 text-xs">Falta: {hours(r.result.absentMin)} | Cobertura: {hours(r.result.coveredMin)} | Dispensa: {hours(r.result.waivedMin)} | Horas a descontar: {hours(r.result.uncoveredMin)} | Desconto previsto: {brl(r.result.discountCents)}</p>{r.coverages.filter(c => c.status !== "cancelada").map(c => <p key={c.id} className="text-xs text-muted-foreground">{c.day_worker?.name ?? c.employee?.name ?? c.supervisor?.full_name} · {hhmm(c.start_time)}–{hhmm(c.end_time)} · {c.status === "realizada" ? "Realizada" : "Pendente"}</p>)}{r.result.waivedMin > 0 && <p className="text-xs text-info">Dispensado pelo tomador — sem desconto</p>}{r.result.pendingMin > 0 && <Pill tone="warning">Tratamento pendente</Pill>}</>}</div> },
             { header: "Situação", cell: (r) => <Pill tone={attTone(r.attendance?.status)}>{r.attendance ? ATT_LABEL[r.attendance.status] : "Não informado"}</Pill> },
             { header: "Justificativa", cell: (r) => r.attendance && r.attendance.status.startsWith("falta") ? <Pill tone={r.attendance.justification_status === "aprovada" ? "success" : r.attendance.justification_status === "rejeitada" ? "danger" : "neutral"}>{JUST_LABEL[r.attendance.justification_status]}</Pill> : "—" },
             { header: "Descoberto", cell: (r) => r.result.needMin ? <span className="num">{hours(r.result.uncoveredMin)}{r.result.coveredMin > 0 && <span className="text-xs text-muted-foreground"> ({hours(r.result.coveredMin)} cob.)</span>}</span> : "—" },
@@ -92,15 +104,15 @@ function Conferencia() {
             { header: "Alertas", cell: (r) => r.divergences.filter((d) => d.status === "aberta").length ? <Pill tone="warning">Divergência</Pill> : null },
             { header: "Ações", cell: (r) => (
               <div className="flex gap-1">
-                <Button size="sm" variant="outline" onClick={() => quick(r, "presente")}>Presente</Button>
-                <Button size="sm" variant="outline" onClick={() => quick(r, "falta_integral")}>Falta</Button>
-                <Button size="sm" onClick={() => setEdit(r)}>Detalhar</Button>
+                <Button disabled={!canEdit} size="sm" variant="outline" onClick={() => quick(r, "presente")}>Presente</Button>
+                <Button disabled={!canEdit} size="sm" variant="outline" onClick={async () => { const { error } = await supabase.from("attendance").upsert({ schedule_id: r.schedule.id, contract_id: r.schedule.contract_id, work_date: r.schedule.work_date, status: "falta_integral", absent_intervals: [] }, { onConflict: "schedule_id" }); if (error) toast.error(errMsg(error)); else { await refresh(); setEdit({ ...r, attendance: { ...r.attendance, status: "falta_integral", absent_intervals: [] } }); } }}>Falta</Button>
+                <Button size="sm" onClick={() => setEdit(r)}>{r.attendance?.status?.startsWith("falta") ? "Informar cobertura / tratamento" : "Detalhar"}</Button>
               </div>
             ) },
           ]}
         />
       )}
-      {edit && <EditDialog row={edit} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); refresh(); }} />}
+      {edit && <EditDialog row={edit} disabled={!canEdit} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); refresh(); }} />}
       <AlertDialog open={batchOpen} onOpenChange={setBatchOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -117,7 +129,7 @@ function Conferencia() {
   );
 }
 
-function EditDialog({ row, onClose, onSaved }: { row: DayRow; onClose: () => void; onSaved: () => void }) {
+function EditDialog({ row, onClose, onSaved, disabled }: { row: DayRow; onClose: () => void; onSaved: () => void; disabled: boolean }) {
   const a = row.attendance;
   const [status, setStatus] = useState<string>(a?.status ?? "presente");
   const [intervals, setIntervals] = useState<{ start: string; end: string }[]>(a?.absent_intervals?.length ? a.absent_intervals : [{ start: "13:00", end: "17:00" }]);
@@ -127,11 +139,11 @@ function EditDialog({ row, onClose, onSaved }: { row: DayRow; onClose: () => voi
   const [busy, setBusy] = useState(false);
   const s = row.schedule;
   const work = workIntervals(s.start_time, s.end_time, s.break_start, s.break_end);
-  const partialMin = total(intersect(intervals.filter((i) => i.start && i.end).map((i) => [toMin(i.start)!, toMin(i.end)!] as Interval), work));
+  const partialMin = total(intersect(intervals.flatMap(i => { const start = toMin(i.start), end = toMin(i.end); return start === null || end === null ? [] : [[start, end] as Interval]; }), work));
 
-  const save = async () => {
-    setBusy(true);
-    try {
+  const persist = async () => {
+      if (disabled) throw new Error("Período fechado ou sem permissão.");
+      if (status === "falta_parcial" && (!partialMin || intervals.some(i => !i.start || !i.end || i.end <= i.start))) throw new Error("Informe intervalos de ausência válidos.");
       let justification_doc = a?.justification_doc ?? null;
       if (file) {
         const path = `${s.contract_id}/justificativas/${s.id}-${Date.now()}-${file.name}`;
@@ -140,13 +152,20 @@ function EditDialog({ row, onClose, onSaved }: { row: DayRow; onClose: () => voi
         justification_doc = path;
         if (just === "nao_apresentada") setJust("pendente");
       }
-      const { error } = await supabase.from("attendance").upsert({
+      const { data: saved, error } = await supabase.from("attendance").upsert({
         schedule_id: s.id, contract_id: s.contract_id, work_date: s.work_date, status,
         absent_intervals: status === "falta_parcial" ? intervals : [],
         justification_status: file && just === "nao_apresentada" ? "pendente" : just,
         justification_doc, notes,
-      }, { onConflict: "schedule_id" });
+      }, { onConflict: "schedule_id" }).select("id").single();
       if (error) throw error;
+      if (!saved) throw new Error("Não foi possível salvar a ocorrência.");
+      return saved.id;
+  };
+  const save = async () => {
+    setBusy(true);
+    try {
+      await persist();
       toast.success("Registro salvo.");
       onSaved();
     } catch (e) {
@@ -156,10 +175,11 @@ function EditDialog({ row, onClose, onSaved }: { row: DayRow; onClose: () => voi
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-h-[90dvh] max-w-2xl overflow-y-auto">
         <DialogHeader><DialogTitle>{row.employee?.registration} — {row.employee?.name}</DialogTitle></DialogHeader>
         <p className="-mt-2 text-sm text-muted-foreground">{fmtDate(s.work_date)} · Posto {row.post?.code} · {hhmm(s.start_time)}–{hhmm(s.end_time)} (intervalo {hhmm(s.break_start)}–{hhmm(s.break_end)})</p>
         <div className="grid gap-4">
+          <fieldset disabled={disabled || busy} className="grid gap-4">
           <Field label="Situação do funcionário">
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {Object.entries(ATT_LABEL).map(([k, v]) => (
@@ -199,10 +219,12 @@ function EditDialog({ row, onClose, onSaved }: { row: DayRow; onClose: () => voi
             {a?.justification_doc && <span className="flex items-center gap-1 text-xs text-muted-foreground"><Paperclip className="h-3 w-3" />Documento já anexado</span>}
           </Field>
           <Field label="Observações"><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} /></Field>
+          </fieldset>
+          {["falta_integral", "falta_parcial", "ferias", "afastamento"].includes(status) && <AbsenceTreatment row={row} attendance={{ status: status as import("@/lib/calc").AttendanceStatus, absent_intervals: intervals }} persist={persist} disabled={disabled || busy} />}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={save} disabled={busy}>{busy ? "Salvando…" : "Salvar"}</Button>
+          <Button onClick={save} disabled={busy || disabled}>{busy ? "Salvando…" : "Salvar ocorrência"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
