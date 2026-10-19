@@ -154,7 +154,8 @@ export function computePostDay(s: ScheduleLike, a: AttendanceLike | null | undef
   const work = workIntervals(s.start_time, s.end_time, s.break_start, s.break_end);
   const absent = absenceIntervals(s, a);
   const need = needIntervals(s, a);
-  const realized = coverages.filter((c) => c.status === "realizada");
+  // Any informed (non-cancelled) coverage means the post is staffed: no client discount for those hours.
+  const realized = coverages.filter((c) => c.status !== "cancelada");
   const covUnion = normalize(realized.flatMap(coverageIntervals));
   const covered = intersect(need, covUnion);
   const treatmentIntervals = (kind: string) => treatments.filter(t => t.active !== false && t.kind === kind).flatMap(t => workIntervals(t.start_time, t.end_time));

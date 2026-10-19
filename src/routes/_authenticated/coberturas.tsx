@@ -40,7 +40,7 @@ function Coberturas() {
 
   return (
     <div>
-      <PageHeader title="Coberturas" description="Somente coberturas realizadas reduzem as horas descobertas."
+      <PageHeader title="Coberturas" description="Posto coberto não gera desconto do cliente; o valor da cobertura é despesa separada."
         actions={<Button onClick={() => setOpen(true)}><Plus className="mr-2 h-4 w-4" />Nova cobertura</Button>} />
       <div className="mb-4 flex flex-col gap-2 sm:flex-row">
         <ContractSelect value={contract} onChange={setContract} />
