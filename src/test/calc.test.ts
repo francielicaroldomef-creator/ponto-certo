@@ -30,10 +30,15 @@ describe("cálculos do contrato teste (05/10/2026)", () => {
     const r = computePostDay(S, partial, [cov("13:00", "15:00", 32.5), cov("14:00", "16:00", 32.5)]);
     expect(r.coveredMin).toBe(180);
   });
-  it("somente coberturas realizadas reduzem horas descobertas", () => {
+  it("cobertura informada (não cancelada) zera o desconto do cliente", () => {
     const r = computePostDay(S, integral, [{ ...cov("08:00", "17:00", 130, "12:00", "13:00"), status: "confirmada" }]);
-    expect(r.uncoveredMin).toBe(480);
-    expect(r.coverageCostCents).toBe(0);
+    expect(r.uncoveredMin).toBe(0);
+    expect(r.discountCents).toBe(0);
+    expect(r.coverageCostCents).toBe(13000);
+  });
+  it("cobertura cancelada não reduz o desconto", () => {
+    const r = computePostDay(S, integral, [{ ...cov("08:00", "17:00", 130, "12:00", "13:00"), status: "cancelada" }]);
+    expect(r.discountCents).toBe(18000);
   });
   it("folga não gera falta nem desconto", () => {
     expect(computePostDay(S, { status: "folga", hour_value: HV }, []).discountCents).toBe(0);

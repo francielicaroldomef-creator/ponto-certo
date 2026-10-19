@@ -110,7 +110,7 @@ export async function loadPeriod(contractId: string, from: string, to: string): 
   });
   const openCalcDivergences = divergences.filter((d: any) => d.status === "aberta" && d.affects_calc && !d.excluded_from_totals).length;
   // Coverage expense is a record cost, not a cost repeated for every employee on a post.
-  totals.coverageCostCents = coverages.filter(c => c.status === "realizada").reduce((n, c) => n + Math.round(Number(c.agreed_value) * 100), 0);
+  totals.coverageCostCents = coverages.filter(c => c.status !== "cancelada").reduce((n, c) => n + Math.round(Number(c.agreed_value) * 100), 0);
   totals.impactCents = totals.discountCents + totals.coverageCostCents;
   const exactClosing = closings.find(c => c.period_start === from && c.period_end === to);
   if (exactClosing?.snapshot?.totals) Object.assign(totals, { ...emptyTotals(), ...exactClosing.snapshot.totals });
