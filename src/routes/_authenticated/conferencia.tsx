@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Plus, Trash2, Paperclip, CheckCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { loadPeriod, errMsg, type DayRow } from "@/lib/data";
-import { ATT_LABEL, JUST_LABEL, brl, fmtDate, hhmm, hours } from "@/lib/format";
+import { ATT_LABEL, JUST_LABEL, brl, fmtDate, hhmm, hours, todaySP } from "@/lib/format";
 import { minToHHMM, toMin, workIntervals, intersect, total, type Interval } from "@/lib/calc";
 import { ContractSelect, DataTable, Field, PageHeader, Pill, Stat, attTone, useDefaultContract } from "@/components/ui-kit";
 import { DatePicker } from "@/components/date-picker";
@@ -25,7 +25,7 @@ export const Route = createFileRoute("/_authenticated/conferencia")({
 
 function Conferencia() {
   const [contract, setContract] = useDefaultContract();
-  const [date, setDate] = useState("2026-10-05");
+  const [date, setDate] = useState(todaySP());
   const qc = useQueryClient();
   const { data: me } = useMe();
   const { data: closed } = useQuery({ queryKey: ["period-locked", contract, date], enabled: !!contract, queryFn: async () => {
@@ -43,7 +43,7 @@ function Conferencia() {
 
   const quick = async (r: DayRow, status: string) => {
     const { error } = await supabase.from("attendance").upsert(
-      { schedule_id: r.schedule.id, contract_id: r.schedule.contract_id, work_date: r.schedule.work_date, status, absent_intervals: [] },
+      { schedule_id: r.schedule.id, contract_id: r.schedule.contract_id, work_date: r.schedule.work_date, status, absent_intervals: [], hour_value: r.attendance?.hour_value ?? r.post?.hour_value ?? null },
       { onConflict: "schedule_id" },
     );
     if (error) toast.error(errMsg(error));
@@ -52,7 +52,7 @@ function Conferencia() {
 
   const pending = useMemo(() => (data?.rows ?? []).filter((r) => !r.attendance), [data]);
   const batch = async () => {
-    const rows = pending.map((r) => ({ schedule_id: r.schedule.id, contract_id: r.schedule.contract_id, work_date: r.schedule.work_date, status: "presente" }));
+    const rows = pending.map((r) => ({ schedule_id: r.schedule.id, contract_id: r.schedule.contract_id, work_date: r.schedule.work_date, status: "presente", hour_value: r.post?.hour_value ?? null }));
     const { error } = await supabase.from("attendance").upsert(rows, { onConflict: "schedule_id", ignoreDuplicates: true });
     setBatchOpen(false);
     if (error) toast.error(errMsg(error));
@@ -95,7 +95,7 @@ function Conferencia() {
           pageSize={40}
           empty="Nenhuma pessoa prevista na escala para esta data."
           cols={[
-            { header: "Funcionário", className: "whitespace-normal align-top", cell: (r) => <div className="min-w-0"><p className="font-medium"><span className="font-mono text-xs text-muted-foreground">{r.employee?.registration}</span> {r.employee?.name}</p><p className="text-xs text-muted-foreground">{r.post?.code} · {hhmm(r.schedule.start_time)}–{hhmm(r.schedule.end_time)}</p>{r.result.needMin > 0 && <><p className="mt-1 text-xs">Falta: {hours(r.result.absentMin)} | Cobertura: {hours(r.result.coveredMin)} | Dispensa: {hours(r.result.waivedMin)} | A descontar: {hours(r.result.uncoveredMin)}</p>{r.coverages.filter(c => c.status !== "cancelada").map(c => <p key={c.id} className="text-xs text-muted-foreground">Cobertura: {c.day_worker?.name ?? c.employee?.name ?? c.supervisor?.full_name} · {hhmm(c.start_time)}–{hhmm(c.end_time)} · custo {brl(Math.round(Number(c.agreed_value) * 100))}</p>)}{r.result.waivedMin > 0 && <p className="text-xs text-info">Dispensado pelo tomador — sem desconto</p>}{r.result.pendingMin > 0 && <Pill tone="warning">Tratamento pendente</Pill>}</>}</div> },
+            { header: "Funcionário", className: "whitespace-normal align-top", cell: (r) => <div className="min-w-0"><p className="font-medium"><span className="font-mono text-xs text-muted-foreground">{r.employee?.registration}</span> {r.employee?.name}</p><p className="text-xs text-muted-foreground">{r.post?.code} · {hhmm(r.schedule.start_time)}–{hhmm(r.schedule.end_time)}</p>{r.result.needMin > 0 && <><p className="mt-1 text-xs">Falta: {hours(r.result.absentMin)} | Cobertura: {hours(r.result.coveredMin)} | Dispensa: {hours(r.result.waivedMin)} | A descontar: {hours(r.result.uncoveredMin)}</p><p className="text-xs text-muted-foreground">Ausência {brl(Math.round(r.result.absentMin * r.unitCentsPerMin))} · abat. cobertura {brl(Math.round(r.result.coveredMin * r.unitCentsPerMin))} · abat. dispensa {brl(Math.round(r.result.waivedMin * r.unitCentsPerMin))} · desconto final {brl(r.result.discountCents)} · custo cobertura {brl(r.result.coverageCostCents)}</p>{r.coverages.filter(c => c.status !== "cancelada").map(c => <p key={c.id} className="text-xs text-muted-foreground">Cobertura: {c.day_worker?.name ?? c.employee?.name ?? c.supervisor?.full_name} · {hhmm(c.start_time)}–{hhmm(c.end_time)} · custo {brl(Math.round(Number(c.agreed_value) * 100))}</p>)}{r.result.waivedMin > 0 && <p className="text-xs text-info">Dispensado pelo tomador — sem desconto</p>}{r.result.pendingMin > 0 && <Pill tone="warning">Tratamento pendente</Pill>}</>}</div> },
             { header: "Situação", className: "whitespace-normal align-top", cell: (r) => <div className="flex flex-wrap gap-1"><Pill tone={attTone(r.attendance?.status)}>{r.attendance ? ATT_LABEL[r.attendance.status] : "Não informado"}</Pill>{r.attendance?.status?.startsWith("falta") && <Pill tone={r.attendance.justification_status === "aprovada" ? "success" : r.attendance.justification_status === "rejeitada" ? "danger" : "neutral"}>{JUST_LABEL[r.attendance.justification_status]}</Pill>}{r.divergences.filter((d) => d.status === "aberta").length > 0 && <Pill tone="warning">Divergência</Pill>}</div> },
             { header: "Desconto cliente", className: "whitespace-normal align-top", cell: (r) => <span className="num">{r.result.discountCents ? brl(r.result.discountCents) : "—"}</span> },
             { header: "Ações", className: "whitespace-normal align-top", cell: (r) => (
@@ -152,7 +152,7 @@ function EditDialog({ row, onClose, onSaved, disabled }: { row: DayRow; onClose:
         schedule_id: s.id, contract_id: s.contract_id, work_date: s.work_date, status,
         absent_intervals: status === "falta_parcial" ? intervals : [],
         justification_status: file && just === "nao_apresentada" ? "pendente" : just,
-        justification_doc, notes,
+        justification_doc, notes, hour_value: a?.hour_value ?? row.post?.hour_value ?? null,
       }, { onConflict: "schedule_id" }).select("id").single();
       if (error) throw error;
       if (!saved) throw new Error("Não foi possível salvar a ocorrência.");
