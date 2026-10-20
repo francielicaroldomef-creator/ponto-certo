@@ -104,14 +104,14 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen bg-background">
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col bg-sidebar lg:flex">
         {brand}
-        <div className="flex-1 overflow-y-auto"><NavList /></div>
+        <div className="flex-1 overflow-y-auto"><NavList roles={me?.roles ?? []} /></div>
         {footer}
       </aside>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="flex w-72 flex-col bg-sidebar p-0">
           <SheetTitle className="sr-only">Menu</SheetTitle>
           {brand}
-          <div className="flex-1 overflow-y-auto"><NavList onNavigate={() => setOpen(false)} /></div>
+          <div className="flex-1 overflow-y-auto"><NavList roles={me?.roles ?? []} onNavigate={() => setOpen(false)} /></div>
           {footer}
         </SheetContent>
       </Sheet>
