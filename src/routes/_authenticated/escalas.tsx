@@ -6,6 +6,7 @@ import { CalendarPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAll, errMsg } from "@/lib/data";
 import { fmtDate, hhmm } from "@/lib/format";
+import { useDefaultPeriod } from "@/hooks/use-period";
 import { ContractSelect, DataTable, PageHeader, useDefaultContract } from "@/components/ui-kit";
 import { DatePicker } from "@/components/date-picker";
 import { Button } from "@/components/ui/button";

@@ -6,6 +6,7 @@ import { Upload, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { errMsg, fetchAll } from "@/lib/data";
 import { fmtDate, fmtDateTime } from "@/lib/format";
+import { useDefaultPeriod } from "@/hooks/use-period";
 import { pdfPagesText, parseTimesheet, sha256 } from "@/lib/timesheet";
 import { ContractSelect, DataTable, DemoBadge, Field, PageHeader, Pill, useDefaultContract, type Tone } from "@/components/ui-kit";
 import { DatePicker } from "@/components/date-picker";
