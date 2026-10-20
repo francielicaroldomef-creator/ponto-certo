@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
-import { addToTotals, computePostDay, emptyTotals, type AttendanceLike, type PostDayResult, type Totals } from "./calc";
+import { addToTotals, computePostDay, emptyTotals, toCents, type AttendanceLike, type PostDayResult, type Totals } from "./calc";
+import { todaySP } from "./format";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -128,9 +129,9 @@ export async function loadPeriod(contractId: string, from: string, to: string): 
       future,
     };
   });
-  const openCalcDivergences = divergences.filter((d: any) => d.status === "aberta" && d.affects_calc && !d.excluded_from_totals).length;
-  // Coverage expense is a record cost, not a cost repeated for every employee on a post.
-  totals.coverageCostCents = coverages.filter(c => c.status !== "cancelada").reduce((n, c) => n + Math.round(Number(c.agreed_value) * 100), 0);
+  const openCalcDivergences = divergences.filter((d: any) => d.status === "aberta" && d.affects_calc && !d.excluded_from_totals && (!d.work_date || d.work_date <= today)).length;
+  // Coverage expense is a record cost, not a cost repeated for every employee on a post. Future coverages are planning.
+  totals.coverageCostCents = coverages.filter(c => c.status !== "cancelada" && c.work_date <= today).reduce((n, c) => n + Math.round(Number(c.agreed_value) * 100), 0);
   totals.impactCents = totals.discountCents + totals.coverageCostCents;
   const exactClosing = closings.find(c => c.period_start === from && c.period_end === to);
   if (exactClosing?.snapshot?.totals) Object.assign(totals, { ...emptyTotals(), ...exactClosing.snapshot.totals });
