@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { loadPeriod, errMsg, type DayRow } from "@/lib/data";
 import { COV_LABEL, brl, brlValue, fmtDate, hhmm, hours } from "@/lib/format";
+import { useDefaultPeriod } from "@/hooks/use-period";
 import { coverageIntervals, minToHHMM, suggestCoverageCents, total } from "@/lib/calc";
 import { ContractSelect, DataTable, Field, PageHeader, Pill, useDefaultContract, type Tone } from "@/components/ui-kit";
 import { DatePicker } from "@/components/date-picker";
@@ -25,8 +26,7 @@ const covTone = (s: string): Tone => (s === "realizada" ? "success" : s === "can
 
 function Coberturas() {
   const [contract, setContract] = useDefaultContract();
-  const [from, setFrom] = useState("2026-10-01");
-  const [to, setTo] = useState("2026-10-31");
+  const [from, to, setFrom, setTo] = useDefaultPeriod();
   const [open, setOpen] = useState(false);
   const qc = useQueryClient();
   const { data } = useQuery({ queryKey: ["period", contract, from, to], queryFn: () => loadPeriod(contract, from, to), enabled: !!contract });

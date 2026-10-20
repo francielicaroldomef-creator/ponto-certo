@@ -5,6 +5,7 @@ import { loadPeriod, type DayRow } from "@/lib/data";
 import { ATT_LABEL, COV_LABEL, brl, brlValue, fmtDate, hhmm, hours } from "@/lib/format";
 import { exportCSV, exportPDF, type ExportCol } from "@/lib/export";
 import { useContracts } from "@/hooks/use-auth";
+import { useDefaultPeriod } from "@/hooks/use-period";
 import { ContractSelect, DataTable, PageHeader, Stat, useDefaultContract } from "@/components/ui-kit";
 import { DatePicker } from "@/components/date-picker";
 import { Button } from "@/components/ui/button";
@@ -22,8 +23,7 @@ const KINDS: Record<Kind, string> = { faltas: "Faltas e descontos", coberturas: 
 
 function Relatorios() {
   const [contract, setContract] = useDefaultContract();
-  const [from, setFrom] = useState("2026-10-01");
-  const [to, setTo] = useState("2026-10-31");
+  const [from, to, setFrom, setTo] = useDefaultPeriod();
   const [kind, setKind] = useState<Kind>("faltas");
   const { data: contracts } = useContracts();
   const c = contracts?.find((x) => x.id === contract);

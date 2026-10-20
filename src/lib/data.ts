@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
-import { addToTotals, computePostDay, emptyTotals, type AttendanceLike, type PostDayResult, type Totals } from "./calc";
+import { addToTotals, computePostDay, emptyTotals, toCents, type AttendanceLike, type PostDayResult, type Totals } from "./calc";
+import { todaySP } from "./format";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -25,6 +26,10 @@ export interface DayRow {
   treatments: any[];
   divergences: any[];
   result: PostDayResult;
+  /** Discount value per uncovered minute (rule-aware), for the absence breakdown. */
+  unitCentsPerMin: number;
+  /** True for dates after today (America/Sao_Paulo): planning only, never counted as realized. */
+  future: boolean;
 }
 
 export interface PeriodData {
@@ -83,20 +88,34 @@ export async function loadPeriod(contractId: string, from: string, to: string): 
     const k = covKey(c.post_id, c.work_date);
     covByPostDay.set(k, [...(covByPostDay.get(k) ?? []), c]);
   }
+  const today = todaySP();
   const totals = emptyTotals();
   let notInformed = 0;
   const rows: DayRow[] = schedules.map((s: any) => {
     const att = attBySched.get(s.id) ?? null;
-    if (!att) notInformed++;
+    const future = s.work_date > today;
+    if (!att && !future) notInformed++;
     const covs = (covByPostDay.get(covKey(s.post_id, s.work_date)) ?? []).filter(c => !c.attendance_id || c.attendance_id === att?.id);
     const ts = treatments.filter(t => t.attendance_id === att?.id);
-    const result = computePostDay(s, att as AttendanceLike | null, covs, ts);
-    if (contracts[0]?.discount_rule !== "hora" && result.requiredMin > 0) result.discountCents = Math.round(result.uncoveredMin * Math.round(Number(s.post?.day_value ?? 0) * 100) / result.requiredMin);
+    // Records created through the UI may lack hour_value: fall back to the post value.
+    const attWithValue = att ? { ...att, hour_value: att.hour_value ?? s.post?.hour_value } : null;
+    const result = computePostDay(s, attWithValue as AttendanceLike | null, covs, ts);
+    const hourCents = toCents(attWithValue?.hour_value ?? s.post?.hour_value ?? 0);
+    const dayCents = toCents(s.post?.day_value ?? 0);
+    const unitCentsPerMin = contracts[0]?.discount_rule === "hora" || result.requiredMin === 0
+      ? hourCents / 60
+      : dayCents / result.requiredMin;
+    if (contracts[0]?.discount_rule !== "hora" && result.requiredMin > 0) result.discountCents = Math.round(result.uncoveredMin * dayCents / result.requiredMin);
     const closing = closings.find(c => c.period_start <= s.work_date && c.period_end >= s.work_date);
     const saved = closing?.snapshot?.dayRows?.find((r: any) => r.schedule.id === s.id);
     if (saved?.result) Object.assign(result, saved.result);
     else if (closing) result.pendingMin = 0; // Legacy closed amounts are unchanged; no new pending treatment is inferred.
-    addToTotals(totals, att as AttendanceLike | null, result);
+    if (future) {
+      // Planning only: future dates never generate absences, discounts, pendings or realized totals.
+      Object.assign(result, { absentMin: 0, needMin: 0, coveredMin: 0, waivedMin: 0, pendingMin: 0, uncoveredMin: 0, discountCents: 0, coverageCostCents: 0, uncoveredIntervals: [] });
+    } else {
+      addToTotals(totals, attWithValue as AttendanceLike | null, result);
+    }
     return {
       schedule: s,
       employee: s.employee,
@@ -106,11 +125,13 @@ export async function loadPeriod(contractId: string, from: string, to: string): 
       treatments: ts,
       divergences: divergences.filter((d: any) => d.schedule_id === s.id || (d.employee_id === s.employee_id && d.work_date === s.work_date)),
       result,
+      unitCentsPerMin,
+      future,
     };
   });
-  const openCalcDivergences = divergences.filter((d: any) => d.status === "aberta" && d.affects_calc && !d.excluded_from_totals).length;
-  // Coverage expense is a record cost, not a cost repeated for every employee on a post.
-  totals.coverageCostCents = coverages.filter(c => c.status !== "cancelada").reduce((n, c) => n + Math.round(Number(c.agreed_value) * 100), 0);
+  const openCalcDivergences = divergences.filter((d: any) => d.status === "aberta" && d.affects_calc && !d.excluded_from_totals && (!d.work_date || d.work_date <= today)).length;
+  // Coverage expense is a record cost, not a cost repeated for every employee on a post. Future coverages are planning.
+  totals.coverageCostCents = coverages.filter(c => c.status !== "cancelada" && c.work_date <= today).reduce((n, c) => n + Math.round(Number(c.agreed_value) * 100), 0);
   totals.impactCents = totals.discountCents + totals.coverageCostCents;
   const exactClosing = closings.find(c => c.period_start === from && c.period_end === to);
   if (exactClosing?.snapshot?.totals) Object.assign(totals, { ...emptyTotals(), ...exactClosing.snapshot.totals });

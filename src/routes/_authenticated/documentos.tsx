@@ -6,6 +6,7 @@ import { Upload, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { errMsg, fetchAll } from "@/lib/data";
 import { fmtDate, fmtDateTime } from "@/lib/format";
+import { useDefaultPeriod } from "@/hooks/use-period";
 import { pdfPagesText, parseTimesheet, sha256 } from "@/lib/timesheet";
 import { ContractSelect, DataTable, DemoBadge, Field, PageHeader, Pill, useDefaultContract, type Tone } from "@/components/ui-kit";
 import { DatePicker } from "@/components/date-picker";
@@ -32,8 +33,7 @@ const STATUS: Record<string, [string, Tone]> = {
 
 function Documentos() {
   const [contract, setContract] = useDefaultContract();
-  const [from, setFrom] = useState("2026-10-01");
-  const [to, setTo] = useState("2026-10-31");
+  const [from, to, setFrom, setTo] = useDefaultPeriod();
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [view, setView] = useState<any>(null);

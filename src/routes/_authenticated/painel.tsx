@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { loadPeriod } from "@/lib/data";
 import { brl, fmtDate, hours, todaySP } from "@/lib/format";
+import { useDefaultPeriod } from "@/hooks/use-period";
 import { ContractSelect, DataTable, PageHeader, Pill, Stat, useDefaultContract } from "@/components/ui-kit";
 import { DatePicker } from "@/components/date-picker";
 
@@ -13,8 +14,7 @@ export const Route = createFileRoute("/_authenticated/painel")({
 
 function Painel() {
   const [contract, setContract] = useDefaultContract();
-  const [from, setFrom] = useState("2026-10-01");
-  const [to, setTo] = useState("2026-10-31");
+  const [from, to, setFrom, setTo] = useDefaultPeriod();
   const { data, isLoading } = useQuery({ queryKey: ["period", contract, from, to], queryFn: () => loadPeriod(contract, from, to), enabled: !!contract });
 
   const view = useMemo(() => {
@@ -60,7 +60,7 @@ function Painel() {
   const t = data?.totals;
   return (
     <div>
-      <PageHeader title="Painel geral" description="Indicadores do período por contrato. Impacto financeiro não representa lucro ou margem." />
+      <PageHeader title="Painel geral" description={`Apuração de ${fmtDate(from)} a ${fmtDate(to)}. Indicadores por contrato; impacto financeiro não representa lucro ou margem.`} />
       <div className="mb-6 flex flex-col gap-2 sm:flex-row">
         <ContractSelect value={contract} onChange={setContract} />
         <DatePicker value={from} onChange={setFrom} label="De" />
