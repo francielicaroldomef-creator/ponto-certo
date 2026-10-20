@@ -23,6 +23,18 @@ export function hours(min: number): string {
 export function todaySP(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(new Date());
 }
+/** Default apuração period: 1st of the current month through today (America/Sao_Paulo). */
+export function monthToDateSP(): [string, string] {
+  const today = todaySP();
+  return [`${today.slice(0, 7)}-01`, today];
+}
+/** Full current month (correct last day, including February/leap years). */
+export function monthRangeSP(): [string, string] {
+  const today = todaySP();
+  const [y, m] = today.slice(0, 7).split("-").map(Number);
+  const last = new Date(y ?? 0, m ?? 1, 0).getDate();
+  return [`${today.slice(0, 7)}-01`, `${today.slice(0, 7)}-${String(last).padStart(2, "0")}`];
+}
 export function toISO(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
