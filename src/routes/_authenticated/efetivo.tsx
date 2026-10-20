@@ -5,6 +5,7 @@ import { loadPeriod } from "@/lib/data";
 import { fmtDate } from "@/lib/format";
 import { exportCSV } from "@/lib/export";
 import { useContracts } from "@/hooks/use-auth";
+import { useDefaultPeriod } from "@/hooks/use-period";
 import { ContractSelect, DataTable, PageHeader, Pill, Stat, useDefaultContract } from "@/components/ui-kit";
 import { DatePicker } from "@/components/date-picker";
 import { Button } from "@/components/ui/button";
@@ -18,8 +19,7 @@ interface DayEff { date: string; scheduled: number; present: number; partial: nu
 
 function Efetivo() {
   const [contract, setContract] = useDefaultContract();
-  const [from, setFrom] = useState("2026-10-01");
-  const [to, setTo] = useState("2026-10-31");
+  const [from, to, setFrom, setTo] = useDefaultPeriod();
   const { data: contracts } = useContracts();
   const c = contracts?.find((x) => x.id === contract);
   const { data } = useQuery({ queryKey: ["period", contract, from, to], queryFn: () => loadPeriod(contract, from, to), enabled: !!contract });

@@ -19,8 +19,7 @@ export const Route = createFileRoute("/_authenticated/escalas")({
 
 function Escalas() {
   const [contract, setContract] = useDefaultContract();
-  const [from, setFrom] = useState("2026-10-01");
-  const [to, setTo] = useState("2026-10-31");
+  const [from, to, setFrom, setTo] = useDefaultPeriod(true);
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ["schedules", contract, from, to], enabled: !!contract,

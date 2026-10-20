@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { errMsg, loadPeriod } from "@/lib/data";
 import { brl, brlValue, fmtDate, fmtDateTime, hours } from "@/lib/format";
 import { useMe } from "@/hooks/use-auth";
+import { useDefaultPeriod } from "@/hooks/use-period";
 import { ContractSelect, DataTable, Field, PageHeader, Pill, Stat, useDefaultContract } from "@/components/ui-kit";
 import { DatePicker } from "@/components/date-picker";
 import { Button } from "@/components/ui/button";
@@ -24,8 +25,7 @@ export const Route = createFileRoute("/_authenticated/fechamentos")({
 
 function Fechamentos() {
   const [contract, setContract] = useDefaultContract();
-  const [from, setFrom] = useState("2026-10-01");
-  const [to, setTo] = useState("2026-10-31");
+  const [from, to, setFrom, setTo] = useDefaultPeriod();
   const [applied, setApplied] = useState("");
   const [reason, setReason] = useState("");
   const [reopen, setReopen] = useState<any>(null);
