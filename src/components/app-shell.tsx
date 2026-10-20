@@ -37,11 +37,21 @@ const NAV = [
   ]},
 ] as const;
 
-function NavList({ onNavigate }: { onNavigate?: () => void }) {
+/** Áreas autorizadas para o perfil Supervisor (as demais são exclusivas do administrador). */
+export const SUPERVISOR_PATHS = ["/painel", "/conferencia", "/coberturas", "/efetivo", "/relatorios", "/fechamentos"] as const;
+
+export function isSupervisorOnly(roles: string[]): boolean {
+  return roles.includes("supervisor") && !roles.includes("admin");
+}
+
+function NavList({ roles, onNavigate }: { roles: string[]; onNavigate?: () => void }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
+  const groups = isSupervisorOnly(roles)
+    ? NAV.map((g) => ({ ...g, items: g.items.filter((it) => (SUPERVISOR_PATHS as readonly string[]).includes(it.to)) })).filter((g) => g.items.length > 0)
+    : NAV;
   return (
     <nav className="flex flex-col gap-5 px-3 py-4">
-      {NAV.map((g) => (
+      {groups.map((g) => (
         <div key={g.group}>
           <p className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/50">{g.group}</p>
           {g.items.map((it) => {
