@@ -1,4 +1,5 @@
 # Portal do Supervisor — Roadmap
+- [ ] Corrigir e validar sobreposição da mesma ausência nos dois fluxos, sem modificar registros existentes.
 - [x] 1. Banco, autenticação e permissões (RLS por contrato, bloqueio pós-fechamento, auditoria)
 - [x] 2. Cadastros e dados fictícios (CT-001, 30 postos/funcionários, 5 diaristas, escala out/2026)
 - [x] 3. Escalas, conferência diária e coberturas (conflitos bloqueados no banco)
