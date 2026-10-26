@@ -15,6 +15,13 @@
       "when": 1792358951288,
       "tag": "0001_absence_interval_treatments",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793015376109,
+      "tag": "0002_guard_absence_treatment_overlap",
+      "breakpoints": true
     }
   ]
 }

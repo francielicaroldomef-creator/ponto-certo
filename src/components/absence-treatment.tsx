@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { errMsg, type DayRow } from "@/lib/data";
+import { validateTreatmentConflict } from "@/lib/treatment-conflicts";
 import { computePostDay, coverageIntervals, total, suggestCoverageCents, type AttendanceLike } from "@/lib/calc";
 import { brl, hours, hhmm, fmtDateTime } from "@/lib/format";
 import { Field, Pill } from "@/components/ui-kit";
@@ -70,6 +71,7 @@ export function AbsenceTreatment({ row, attendance, persist, disabled }: { row: 
     if (!Number.isFinite(amount) || amount < 0) { toast.error("Informe um custo válido."); return; }
     setBusy(true);
     try {
+      await validateTreatmentConflict(row.schedule, attendance, { id: editing?.id, start_time: start, end_time: end, break_start: row.schedule.break_start, break_end: row.schedule.break_end, status, kind }, isCoverage);
       const attendanceId = await persist();
       if (isCoverage) {
         const payload = { contract_id: row.schedule.contract_id, post_id: row.schedule.post_id, attendance_id: attendanceId, work_date: row.schedule.work_date, coverer_type: kind,
