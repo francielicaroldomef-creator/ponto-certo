@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { loadPeriod, errMsg, type DayRow } from "@/lib/data";
+import { validateTreatmentConflict } from "@/lib/treatment-conflicts";
 import { COV_LABEL, brl, brlValue, fmtDate, hhmm, hours } from "@/lib/format";
 import { useDefaultPeriod } from "@/hooks/use-period";
 import { coverageIntervals, minToHHMM, suggestCoverageCents, total } from "@/lib/calc";
@@ -87,7 +88,8 @@ function NewCoverage({ contract, rows, onClose, onSaved }: { contract: string; r
   const [person, setPerson] = useState("");
   const first = need?.result.uncoveredIntervals[0];
   const [start, setStart] = useState(first ? minToHHMM(first[0]) : "08:00");
-  const [end, setEnd] = useState(first ? minToHHMM(need!.result.uncoveredIntervals.at(-1)![1]) : "17:00");
+  const last = need?.result.uncoveredIntervals.at(-1);
+  const [end, setEnd] = useState(last ? minToHHMM(last[1]) : "17:00");
   const [bs, setBs] = useState("12:00");
   const [be, setBe] = useState("13:00");
   const [value, setValue] = useState("");
@@ -105,14 +107,17 @@ function NewCoverage({ contract, rows, onClose, onSaved }: { contract: string; r
   const save = async (): Promise<any> => {
     if (!need || !person) return toast.error("Selecione a ocorrência e a pessoa.");
     setBusy(true);
+    try {
+    if (need.attendance) await validateTreatmentConflict(need.schedule, need.attendance, { start_time: start, end_time: end, break_start: useBreak ? bs : null, break_end: useBreak ? be : null, status }, true);
     const { error } = await supabase.from("coverages").insert({
       contract_id: contract, post_id: need.schedule.post_id, attendance_id: need.attendance?.id ?? null, work_date: need.schedule.work_date,
       coverer_type: type, day_worker_id: type === "diarista" ? person : null, employee_id: type === "funcionario" ? person : null,
       start_time: start, end_time: end, break_start: useBreak ? bs : null, break_end: useBreak ? be : null,
       agreed_value: value !== "" ? Number(value.replace(",", ".")) : suggested / 100, status,
     });
-    setBusy(false);
-    if (error) toast.error(errMsg(error)); else { toast.success("Cobertura registrada."); onSaved(); }
+    if (error) throw error;
+    toast.success("Cobertura registrada."); onSaved();
+    } catch (e) { toast.error(errMsg(e)); } finally { setBusy(false); }
   };
 
   return (
