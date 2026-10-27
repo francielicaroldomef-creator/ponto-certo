@@ -49,7 +49,7 @@ export async function loadPeriod(contractId: string, from: string, to: string, u
     fetchAll((a, b) =>
       supabase
         .from("schedules")
-        .select("*, employee:employees(id, registration, name), post:posts(id, code, hour_value, day_value)")
+        .select("*, employee:employees(id, registration, name), post:posts(id, code, workplace, city, hour_value, day_value)")
         .eq("contract_id", contractId)
         .gte("work_date", from)
         .lte("work_date", to)
