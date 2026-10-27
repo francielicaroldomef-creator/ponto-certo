@@ -181,4 +181,18 @@ describe("📋 FLUXO HIERÁRQUICO DE POSTOS EM GRADE ESTILO EXCEL (/postos)", ()
     expect(postosContent).toContain("sem pré-seleção forçada");
     expect(postosContent).toContain("placeholder=\"Selecione o município do RS (497 opções)...\"");
   });
+
+  it("11. Distingue rigorosamente Postos (Locais de Trabalho) de Efetivo (Quantidade de Pessoas)", () => {
+    // Distinção conceitual explícita na tela
+    expect(postosContent).toContain("Postos (Locais)");
+    expect(postosContent).toContain("Efetivo (Pessoas)");
+    expect(postosContent).toContain("Postos de Trabalho (Locais)");
+
+    // Sincronização e poda de postos ao reduzir a meta da cidade
+    expect(postosContent).toContain("currentPosts.slice(0, safeTarget)");
+
+    // Validação estrita de excesso de postos e efetivo
+    expect(postosContent).toContain("totalActualPosts > contractLimitPosts");
+    expect(postosContent).toContain("totalAllocatedStaff > contractLimitStaff");
+  });
 });

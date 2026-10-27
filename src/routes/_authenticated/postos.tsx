@@ -373,10 +373,16 @@ export function PostosHierarquicos() {
       }
     }
 
-    const remainingPosts = contractLimitPosts - totalPlannedPosts;
+    const remainingPosts = contractLimitPosts - totalActualPosts;
     const remainingStaff = contractLimitStaff - totalAllocatedStaff;
-    const isExactMatch = totalPlannedPosts === contractLimitPosts && totalAllocatedStaff === contractLimitStaff;
-    const isExceeded = totalPlannedPosts > contractLimitPosts || totalAllocatedStaff > contractLimitStaff;
+    const isExactMatch =
+      totalActualPosts === contractLimitPosts &&
+      totalPlannedPosts === contractLimitPosts &&
+      totalAllocatedStaff === contractLimitStaff;
+    const isExceeded =
+      totalActualPosts > contractLimitPosts ||
+      totalPlannedPosts > contractLimitPosts ||
+      totalAllocatedStaff > contractLimitStaff;
 
     return {
       totalCities,
@@ -510,11 +516,12 @@ export function PostosHierarquicos() {
   const handleAddCity = useCallback(() => {
     setCities((prev) => {
       const currentPlanned = prev.reduce((s, c) => s + c.targetQty, 0);
-      const remaining = contractLimitPosts - currentPlanned;
+      const currentActual = prev.reduce((s, c) => s + c.posts.length, 0);
+      const remaining = contractLimitPosts - Math.max(currentPlanned, currentActual);
 
       if (remaining <= 0) {
         toast.warning(
-          `Todos os ${contractLimitPosts} postos contratados já estão distribuídos. Ajuste as quantidades existentes para liberar vagas.`
+          `Todos os ${contractLimitPosts} postos de trabalho (locais) já estão distribuídos. Reduza a quantidade de postos em outra cidade antes de adicionar uma nova.`
         );
         return prev;
       }
@@ -573,7 +580,7 @@ export function PostosHierarquicos() {
         return prev.map((c) => {
           if (c.id !== cityId) return c;
 
-          const currentPosts = [...c.posts];
+          let currentPosts = [...c.posts];
           if (safeTarget > currentPosts.length) {
             const allCodes = new Set(prev.flatMap((x) => x.posts.map((p) => p.code)));
             for (let i = currentPosts.length; i < safeTarget; i++) {
@@ -588,7 +595,18 @@ export function PostosHierarquicos() {
                 active: true,
               });
             }
+          } else if (safeTarget < currentPosts.length) {
+            // Sincroniza e reduz os postos da cidade para respeitar estritamente o novo limite
+            const removed = currentPosts.slice(safeTarget);
+            const removedIds = removed
+              .map((p) => p.id)
+              .filter((id): id is string => Boolean(id));
+            if (removedIds.length > 0) {
+              setDeletedPostIds((old) => [...old, ...removedIds]);
+            }
+            currentPosts = currentPosts.slice(0, safeTarget);
           }
+
           return {
             ...c,
             targetQty: safeTarget,
@@ -954,7 +972,7 @@ export function PostosHierarquicos() {
             <span className="font-semibold text-foreground">{stats.totalCities}</span> Cidades (RS)
           </Badge>
           <Badge
-            variant={stats.isExactMatch ? "secondary" : "outline"}
+            variant={stats.isExactMatch ? "secondary" : stats.totalActualPosts > contractLimitPosts ? "destructive" : "outline"}
             className={`px-3 py-1 font-mono text-xs flex items-center gap-1.5 ${
               stats.isExactMatch
                 ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-300"
@@ -962,10 +980,10 @@ export function PostosHierarquicos() {
             }`}
           >
             <MapPin className="h-3.5 w-3.5" />
-            <span className="font-semibold">{stats.totalActualPosts} / {contractLimitPosts}</span> Postos
+            <span className="font-semibold">{stats.totalActualPosts} / {contractLimitPosts}</span> Postos (Locais)
           </Badge>
           <Badge
-            variant={stats.isExactMatch ? "secondary" : "outline"}
+            variant={stats.isExactMatch ? "secondary" : stats.totalAllocatedStaff > contractLimitStaff ? "destructive" : "outline"}
             className={`px-3 py-1 font-mono text-xs flex items-center gap-1.5 ${
               stats.isExactMatch
                 ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-300"
@@ -973,7 +991,7 @@ export function PostosHierarquicos() {
             }`}
           >
             <Users className="h-3.5 w-3.5" />
-            <span className="font-semibold">{stats.totalAllocatedStaff} / {contractLimitStaff}</span> Efetivo
+            <span className="font-semibold">{stats.totalAllocatedStaff} / {contractLimitStaff}</span> Efetivo (Pessoas)
           </Badge>
           {hasChanges && (
             <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-300 px-3 py-1 text-xs animate-pulse">
@@ -1045,15 +1063,15 @@ export function PostosHierarquicos() {
                   </span>
                 </div>
                 <div className="flex items-center justify-between border-t pt-1">
-                  <span className="text-muted-foreground">Postos Contratados:</span>
+                  <span className="text-muted-foreground">Postos Contratados (Locais):</span>
                   <span className="font-bold text-primary font-mono text-xs">
-                    {contractLimitPosts} Postos
+                    {contractLimitPosts} Postos (Locais)
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Efetivo Contratado:</span>
+                  <span className="text-muted-foreground">Efetivo Contratado (Pessoas):</span>
                   <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono text-xs">
-                    {selectedContract.required_headcount || 30} Postos
+                    {selectedContract.required_headcount || 30} Pessoas
                   </span>
                 </div>
                 {selectedContract.code === "CT-001" && (
@@ -1087,7 +1105,7 @@ export function PostosHierarquicos() {
                 Cidades de Atuação no Rio Grande do Sul (Grade Excel)
               </CardTitle>
               <CardDescription>
-                Selecione individualmente entre os <strong>497 municípios do RS</strong> e distribua os <strong>{contractLimitPosts} postos</strong> sem pré-seleção forçada e respeitando os limites contratuais.
+                Selecione individualmente entre os <strong>497 municípios do RS</strong> e distribua os <strong>{contractLimitPosts} postos de trabalho (locais)</strong> sem pré-seleção forçada e respeitando os limites contratuais.
               </CardDescription>
             </div>
 
@@ -1122,25 +1140,25 @@ export function PostosHierarquicos() {
           {/* Barra de Status da Distribuição (Limites Inegociáveis) */}
           <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 p-3 rounded-lg border bg-muted/30 text-xs">
             <div className="flex items-center justify-between sm:justify-start gap-2">
-              <span className="text-muted-foreground">Postos Contratados:</span>
-              <span className="font-bold text-foreground font-mono">{contractLimitPosts}</span>
+              <span className="text-muted-foreground">Postos (Locais) Contratados:</span>
+              <span className="font-bold text-foreground font-mono">{contractLimitPosts} Locais</span>
             </div>
             <div className="flex items-center justify-between sm:justify-start gap-2">
-              <span className="text-muted-foreground">Postos Distribuídos:</span>
-              <span className={`font-bold font-mono ${stats.totalPlannedPosts === contractLimitPosts ? "text-emerald-600" : "text-amber-600"}`}>
-                {stats.totalPlannedPosts} / {contractLimitPosts}
+              <span className="text-muted-foreground">Postos (Locais) Distribuídos:</span>
+              <span className={`font-bold font-mono ${stats.totalActualPosts === contractLimitPosts ? "text-emerald-600" : stats.totalActualPosts > contractLimitPosts ? "text-destructive" : "text-amber-600"}`}>
+                {stats.totalActualPosts} / {contractLimitPosts}
               </span>
             </div>
             <div className="flex items-center justify-between sm:justify-start gap-2">
               <span className="text-muted-foreground">Saldo a Distribuir:</span>
-              <span className={`font-bold font-mono ${stats.remainingPosts === 0 ? "text-emerald-600" : stats.remainingPosts < 0 ? "text-destructive" : "text-amber-600"}`}>
-                {stats.remainingPosts} {stats.remainingPosts === 1 ? "posto" : "postos"}
+              <span className={`font-bold font-mono ${stats.remainingPosts === 0 ? "text-emerald-600" : stats.remainingPosts < 0 ? "text-destructive font-bold" : "text-amber-600"}`}>
+                {stats.remainingPosts} {Math.abs(stats.remainingPosts) === 1 ? "posto" : "postos"}
               </span>
             </div>
             <div className="flex items-center justify-between sm:justify-start gap-2">
-              <span className="text-muted-foreground">Status do Efetivo:</span>
-              <span className={`font-bold font-mono ${stats.totalAllocatedStaff === contractLimitStaff ? "text-emerald-600" : "text-amber-600"}`}>
-                {stats.totalAllocatedStaff} / {contractLimitStaff} vagas
+              <span className="text-muted-foreground">Efetivo (Pessoas) Alocado:</span>
+              <span className={`font-bold font-mono ${stats.totalAllocatedStaff === contractLimitStaff ? "text-emerald-600" : stats.totalAllocatedStaff > contractLimitStaff ? "text-destructive font-bold" : "text-amber-600"}`}>
+                {stats.totalAllocatedStaff} / {contractLimitStaff} pessoas
               </span>
             </div>
           </div>
@@ -1157,7 +1175,7 @@ export function PostosHierarquicos() {
                     Cidade de Atuação no Rio Grande do Sul (497 Municípios Oficiais)
                   </TableHead>
                   <TableHead className="w-72 text-center text-xs font-bold">
-                    Qtd. de Postos Previstos nesta Cidade
+                    Qtd. de Postos Previstos nesta Cidade (Locais)
                   </TableHead>
                   <TableHead className="w-24 text-center text-xs font-bold">Ações</TableHead>
                 </TableRow>
@@ -1501,24 +1519,37 @@ export function PostosHierarquicos() {
             <span className="text-muted-foreground">•</span>
             <span
               className={`font-semibold flex items-center gap-1.5 ${
-                stats.totalActualPosts === contractLimitPosts ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"
+                stats.totalActualPosts === contractLimitPosts
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : stats.totalActualPosts > contractLimitPosts
+                  ? "text-destructive font-bold"
+                  : "text-foreground"
               }`}
             >
               <MapPin className="h-4 w-4 text-primary" />
-              {stats.totalActualPosts} / {contractLimitPosts} Postos de Trabalho
+              {stats.totalActualPosts} / {contractLimitPosts} Postos de Trabalho (Locais)
             </span>
             <span className="text-muted-foreground">•</span>
             <span
               className={`font-medium flex items-center gap-1.5 ${
-                stats.totalAllocatedStaff === contractLimitStaff ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"
+                stats.totalAllocatedStaff === contractLimitStaff
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : stats.totalAllocatedStaff > contractLimitStaff
+                  ? "text-destructive font-bold"
+                  : "text-muted-foreground"
               }`}
             >
               <Users className="h-4 w-4" />
-              {stats.totalAllocatedStaff} / {contractLimitStaff} Vagas Totais
+              {stats.totalAllocatedStaff} / {contractLimitStaff} Efetivo (Pessoas / Vagas Totais)
             </span>
             {stats.isExactMatch && (
               <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-300 text-xs">
                 Distribuição Completa (100%)
+              </Badge>
+            )}
+            {stats.isExceeded && (
+              <Badge variant="destructive" className="text-xs font-semibold">
+                ⚠️ Limite Excedido: {stats.totalActualPosts > contractLimitPosts ? `${stats.totalActualPosts}/${contractLimitPosts} Postos (Locais)` : `${stats.totalAllocatedStaff}/${contractLimitStaff} Efetivo (Pessoas)`}
               </Badge>
             )}
             {hasChanges && (
