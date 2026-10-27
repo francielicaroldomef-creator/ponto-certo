@@ -34,7 +34,11 @@ function Fechamentos() {
   const { data: me } = useMe();
   const canClose = me?.has("admin", "financeiro");
 
-  const { data: period } = useQuery({ queryKey: ["period", contract, from, to], queryFn: () => loadPeriod(contract, from, to), enabled: !!contract });
+  const { data: period } = useQuery({
+    queryKey: ["period", contract, from, to, me?.roles],
+    queryFn: () => loadPeriod(contract, from, to, me?.roles),
+    enabled: !!contract,
+  });
   const { data: closings } = useQuery({
     queryKey: ["closings", contract], enabled: !!contract,
     queryFn: async () => {
@@ -84,8 +88,14 @@ function Fechamentos() {
         <DatePicker value={to} onChange={setTo} label="Até" />
       </div>
       <div className="mb-4 grid gap-3 sm:grid-cols-4">
-        <Stat label="Desconto previsto" value={brl(t?.discountCents ?? 0)} tone="danger" />
-        <Stat label="Custo de coberturas" value={brl(t?.coverageCostCents ?? 0)} tone="info" />
+        {canClose ? (
+          <>
+            <Stat label="Desconto previsto" value={brl(t?.discountCents ?? 0)} tone="danger" />
+            <Stat label="Custo de coberturas" value={brl(t?.coverageCostCents ?? 0)} tone="info" />
+          </>
+        ) : (
+          <Stat label="Financeiro" value="Restrito" hint="Apenas Administrador e Financeiro" tone="neutral" />
+        )}
         <Stat label="Presenças pendentes" value={period?.notInformed ?? 0} tone={period?.notInformed ? "warning" : "success"} />
         <Stat label="Divergências abertas" value={period?.openCalcDivergences ?? 0} tone={period?.openCalcDivergences ? "warning" : "success"} />
         <Stat label="Tratamento pendente" value={hours(t?.pendingMin ?? 0)} tone={t?.pendingMin ? "warning" : "success"} />
@@ -109,9 +119,9 @@ function Fechamentos() {
         cols={[
           { header: "Período", cell: (c: any) => `${fmtDate(c.period_start)} a ${fmtDate(c.period_end)}` },
           { header: "Situação", cell: (c: any) => c.status === "fechado" ? <Pill tone="success">Fechado</Pill> : <Pill tone="warning">Reaberto</Pill> },
-          { header: "Previsto", cell: (c: any) => brlValue(c.predicted_discount), className: "num text-right" },
-          { header: "Aplicado", cell: (c: any) => brlValue(c.applied_discount), className: "num text-right" },
-          { header: "Coberturas", cell: (c: any) => brlValue(c.coverage_cost), className: "num text-right" },
+          { header: "Previsto", cell: (c: any) => canClose ? brlValue(c.predicted_discount) : "🔒 Restrito", className: "num text-right" },
+          { header: "Aplicado", cell: (c: any) => canClose ? brlValue(c.applied_discount) : "🔒 Restrito", className: "num text-right" },
+          { header: "Coberturas", cell: (c: any) => canClose ? brlValue(c.coverage_cost) : "🔒 Restrito", className: "num text-right" },
           { header: "Motivo / reabertura", cell: (c: any) => <span className="text-xs text-muted-foreground">{[c.difference_reason, c.reopen_reason && `Reaberto: ${c.reopen_reason}`].filter(Boolean).join(" · ") || "—"}</span> },
           { header: "Fechado em", cell: (c: any) => fmtDateTime(c.closed_at) },
           { header: "", cell: (c: any) => me?.has("admin") && c.status === "fechado" ? <Button size="sm" variant="outline" onClick={() => setReopen(c)}><Unlock className="mr-1 h-3 w-3" />Reabrir</Button> : null },

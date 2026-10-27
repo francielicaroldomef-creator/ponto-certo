@@ -44,7 +44,7 @@ export interface PeriodData {
 }
 
 /** Load and compute everything for a contract and date range. Single source for all screens/reports. */
-export async function loadPeriod(contractId: string, from: string, to: string): Promise<PeriodData> {
+export async function loadPeriod(contractId: string, from: string, to: string, userRoles?: string[]): Promise<PeriodData> {
   const [schedules, attendance, coverages, divergences, treatments, contracts, closings] = await Promise.all([
     fetchAll((a, b) =>
       supabase
@@ -135,7 +135,8 @@ export async function loadPeriod(contractId: string, from: string, to: string): 
   totals.impactCents = totals.discountCents + totals.coverageCostCents;
   const exactClosing = closings.find(c => c.period_start === from && c.period_end === to);
   if (exactClosing?.snapshot?.totals) Object.assign(totals, { ...emptyTotals(), ...exactClosing.snapshot.totals });
-  return {
+
+  const rawData: PeriodData = {
     rows,
     coverages,
     treatments,
@@ -145,9 +146,66 @@ export async function loadPeriod(contractId: string, from: string, to: string): 
     openCalcDivergences,
     provisional: !exactClosing && (openCalcDivergences > 0 || notInformed > 0 || totals.pendingMin > 0),
   };
+
+  let isFinancialAuthorized = true;
+  try {
+    if (userRoles) {
+      isFinancialAuthorized = userRoles.includes("admin") || userRoles.includes("financeiro");
+    } else if (typeof window !== "undefined") {
+      const { data: u } = await supabase.auth.getUser();
+      if (u?.user) {
+        const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", u.user.id);
+        const r = (roles ?? []).map((x: any) => x.role);
+        isFinancialAuthorized = r.includes("admin") || r.includes("financeiro");
+      }
+    }
+  } catch {
+    isFinancialAuthorized = false;
+  }
+
+  return sanitizeFinancialData(rawData, isFinancialAuthorized);
+}
+
+/**
+ * Zero-Trust Financial Sanitizer:
+ * Masks and zeroes out all confidential financial amounts (hour rates, day rates,
+ * discounts, coverage costs) from query payloads unless explicitly authorized as admin or financeiro.
+ */
+export function sanitizeFinancialData(data: PeriodData, isFinancialAuthorized: boolean): PeriodData {
+  if (isFinancialAuthorized) return data;
+
+  const totals: Totals = {
+    ...data.totals,
+    discountCents: 0,
+    coverageCostCents: 0,
+    impactCents: 0,
+  };
+
+  const rows: DayRow[] = data.rows.map((r) => ({
+    ...r,
+    post: r.post ? { ...r.post, hour_value: null, day_value: null } : r.post,
+    attendance: r.attendance ? { ...r.attendance, hour_value: null } : r.attendance,
+    coverages: r.coverages.map((c) => ({ ...c, agreed_value: null })),
+    result: {
+      ...r.result,
+      discountCents: 0,
+      coverageCostCents: 0,
+    },
+    unitCentsPerMin: 0,
+  }));
+
+  const coverages = data.coverages.map((c) => ({ ...c, agreed_value: null }));
+
+  return {
+    ...data,
+    rows,
+    coverages,
+    totals,
+  };
 }
 
 export function errMsg(e: unknown): string {
   if (e && typeof e === "object" && "message" in e) return String((e as any).message);
   return String(e);
 }
+

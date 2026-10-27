@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { loadPeriod, type DayRow } from "@/lib/data";
 import { ATT_LABEL, COV_LABEL, brl, brlValue, fmtDate, hhmm, hours } from "@/lib/format";
 import { exportCSV, exportPDF, type ExportCol } from "@/lib/export";
-import { useContracts } from "@/hooks/use-auth";
+import { useContracts, useMe } from "@/hooks/use-auth";
 import { useDefaultPeriod } from "@/hooks/use-period";
 import { ContractSelect, DataTable, PageHeader, Stat, useDefaultContract } from "@/components/ui-kit";
 import { DatePicker } from "@/components/date-picker";
@@ -26,8 +26,14 @@ function Relatorios() {
   const [from, to, setFrom, setTo] = useDefaultPeriod();
   const [kind, setKind] = useState<Kind>("faltas");
   const { data: contracts } = useContracts();
+  const { data: me } = useMe();
+  const isFinancial = !!me?.has("admin", "financeiro");
   const c = contracts?.find((x) => x.id === contract);
-  const { data } = useQuery({ queryKey: ["period", contract, from, to], queryFn: () => loadPeriod(contract, from, to), enabled: !!contract });
+  const { data } = useQuery({
+    queryKey: ["period", contract, from, to, me?.roles],
+    queryFn: () => loadPeriod(contract, from, to, me?.roles),
+    enabled: !!contract,
+  });
 
   const { rows, cols } = useMemo((): { rows: any[]; cols: ExportCol[] } => {
     const all = data?.rows ?? [];
@@ -39,7 +45,7 @@ function Relatorios() {
         { header: "Funcionário", value: emp }, { header: "Situação", value: (r) => ATT_LABEL[r.attendance?.status] ?? "" },
         { header: "Ausência", value: (r) => hours(r.result.absentMin) }, { header: "Coberto", value: (r) => hours(r.result.coveredMin) },
         { header: "Dispensado sem desconto", value: (r) => hours(r.result.waivedMin) }, { header: "Tratamento pendente", value: (r) => hours(r.result.pendingMin) },
-        { header: "Descoberto", value: (r) => hours(r.result.uncoveredMin) }, { header: "Desconto", value: (r) => brl(r.result.discountCents) },
+        { header: "Descoberto", value: (r) => hours(r.result.uncoveredMin) }, { header: "Desconto", value: (r) => isFinancial ? brl(r.result.discountCents) : "🔒 Restrito" },
       ],
     };
     if (kind === "coberturas") return {
@@ -50,7 +56,7 @@ function Relatorios() {
         { header: "Tipo", value: (x) => x.day_worker_id ? "Diarista" : x.supervisor_id ? "Supervisor" : "Funcionário" },
         { header: "Horário", value: (x) => `${hhmm(x.start_time)}–${hhmm(x.end_time)}` },
         { header: "Situação", value: (x) => COV_LABEL[x.status] ?? x.status }, { header: "Pagamento", value: (x) => x.payment_status === "pago" ? "Pago" : "Pendente" },
-        { header: "Valor", value: (x) => brlValue(x.agreed_value) },
+        { header: "Valor", value: (x) => isFinancial ? brlValue(x.agreed_value) : "🔒 Restrito" },
       ],
     };
     if (kind === "dispensas") return {
@@ -81,7 +87,7 @@ function Relatorios() {
         cols: [
           { header: "Funcionário", value: (e) => e.name }, { header: "Dias escalados", value: (e) => e.days },
           { header: "Faltas integrais", value: (e) => e.integral }, { header: "Faltas parciais", value: (e) => e.partial },
-          { header: "Ausência", value: (e) => hours(e.absent) }, { header: "Descoberto", value: (e) => hours(e.uncovered) }, { header: "Desconto", value: (e) => brl(e.discount) },
+          { header: "Ausência", value: (e) => hours(e.absent) }, { header: "Descoberto", value: (e) => hours(e.uncovered) }, { header: "Desconto", value: (e) => isFinancial ? brl(e.discount) : "🔒 Restrito" },
           { header: "Coberto", value: e => hours(e.covered) }, { header: "Dispensado sem desconto", value: e => hours(e.waived) }, { header: "Tratamento pendente", value: e => hours(e.pending) },
         ],
       };
@@ -92,16 +98,18 @@ function Relatorios() {
         { header: "Data", value: (r) => fmtDate(r.schedule.work_date) }, { header: "Posto", value: (r) => r.post?.code },
         { header: "Funcionário", value: emp }, { header: "Turno", value: (r) => `${hhmm(r.schedule.start_time)}–${hhmm(r.schedule.end_time)}` },
         { header: "Situação", value: (r) => r.attendance ? ATT_LABEL[r.attendance.status] ?? "" : "Não informado" },
-        { header: "Descoberto", value: (r) => hours(r.result.uncoveredMin) }, { header: "Desconto", value: (r) => brl(r.result.discountCents) },
+        { header: "Descoberto", value: (r) => hours(r.result.uncoveredMin) }, { header: "Desconto", value: (r) => isFinancial ? brl(r.result.discountCents) : "🔒 Restrito" },
         { header: "Ausência", value: r => hours(r.result.absentMin) }, { header: "Horas cobertas", value: r => hours(r.result.coveredMin) }, { header: "Dispensado sem desconto", value: r => hours(r.result.waivedMin) }, { header: "Tratamento pendente", value: r => hours(r.result.pendingMin) },
-        { header: "Cobertura", value: (r) => brl(r.result.coverageCostCents) },
+        { header: "Cobertura", value: (r) => isFinancial ? brl(r.result.coverageCostCents) : "🔒 Restrito" },
       ],
     };
-  }, [data, kind]);
+  }, [data, kind, isFinancial]);
 
   const t = data?.totals;
   const name = `${KINDS[kind]} ${c?.code ?? ""}`;
-  const subtitle = `${c?.code} — ${c?.name} · ${fmtDate(from)} a ${fmtDate(to)}${data?.provisional ? " · VALORES PROVISÓRIOS" : ""} · Desconto ${brl(t?.discountCents ?? 0)} · Coberturas ${brl(t?.coverageCostCents ?? 0)} · Impacto ${brl(t?.impactCents ?? 0)}`;
+  const subtitle = isFinancial
+    ? `${c?.code} — ${c?.name} · ${fmtDate(from)} a ${fmtDate(to)}${data?.provisional ? " · VALORES PROVISÓRIOS" : ""} · Desconto ${brl(t?.discountCents ?? 0)} · Coberturas ${brl(t?.coverageCostCents ?? 0)} · Impacto ${brl(t?.impactCents ?? 0)}`
+    : `${c?.code} — ${c?.name} · ${fmtDate(from)} a ${fmtDate(to)}${data?.provisional ? " · VALORES PROVISÓRIOS" : ""} · [Valores financeiros restritos ao perfil Financeiro/Admin]`;
 
   return (
     <div>
@@ -121,9 +129,15 @@ function Relatorios() {
       </div>
       {data?.provisional && <p className="mb-3 rounded-md border border-warning/40 bg-warning/10 p-2 text-sm">Valores provisórios: {data.notInformed} presença(s) não informada(s), {hours(data.totals.pendingMin)} com tratamento pendente e {data.openCalcDivergences} divergência(s) aberta(s).</p>}
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <Stat label="Desconto previsto" value={brl(t?.discountCents ?? 0)} tone="danger" />
-        <Stat label="Custo de coberturas" value={brl(t?.coverageCostCents ?? 0)} tone="info" />
-        <Stat label="Impacto total" value={brl(t?.impactCents ?? 0)} tone="warning" />
+        {isFinancial ? (
+          <>
+            <Stat label="Desconto previsto" value={brl(t?.discountCents ?? 0)} tone="danger" />
+            <Stat label="Custo de coberturas" value={brl(t?.coverageCostCents ?? 0)} tone="info" />
+            <Stat label="Impacto total" value={brl(t?.impactCents ?? 0)} tone="warning" />
+          </>
+        ) : (
+          <Stat label="Valores financeiros" value="Restrito" hint="Requer perfil Financeiro/Admin" tone="neutral" />
+        )}
         <Stat label="Horas cobertas" value={hours(t?.coveredMin ?? 0)} tone="success" />
         <Stat label="Dispensa sem desconto" value={hours(t?.waivedMin ?? 0)} tone="info" />
         <Stat label="Tratamento pendente" value={hours(t?.pendingMin ?? 0)} tone="warning" />

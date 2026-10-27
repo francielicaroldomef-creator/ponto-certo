@@ -145,8 +145,8 @@ function Documentos() {
   };
 
   const openFile = async (d: any) => {
-    const { data, error } = await supabase.storage.from("timesheets").createSignedUrl(d.file_path, 300);
-    if (error) toast.error(errMsg(error)); else window.open(data.signedUrl, "_blank");
+    const { data, error } = await supabase.storage.from("timesheets").createSignedUrl(d.file_path, 60);
+    if (error) toast.error(errMsg(error)); else if (data) window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   };
 
   return (

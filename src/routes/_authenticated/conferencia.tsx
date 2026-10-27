@@ -34,8 +34,9 @@ function Conferencia() {
     return data;
   } });
   const canEdit = !!me?.has("admin", "supervisor", "conferente") && closed === false;
-  const key = ["period", contract, date, date];
-  const { data, isLoading } = useQuery({ queryKey: key, queryFn: () => loadPeriod(contract, date, date), enabled: !!contract });
+  const isFinancial = !!me?.has("admin", "financeiro");
+  const key = ["period", contract, date, date, me?.roles?.join(",")];
+  const { data, isLoading } = useQuery({ queryKey: key, queryFn: () => loadPeriod(contract, date, date, me?.roles), enabled: !!contract });
   const [edit, setEdit] = useState<DayRow | null>(null);
   const [batchOpen, setBatchOpen] = useState(false);
 
@@ -77,8 +78,14 @@ function Conferencia() {
           <Stat label="Horas a descontar" value={hours(t.uncoveredMin)} hint={hours(t.coveredMin) + " cobertas"} tone="warning" />
           <Stat label="Dispensa sem desconto" value={hours(t.waivedMin)} tone="info" />
           <Stat label="Tratamento pendente" value={hours(t.pendingMin)} tone={t.pendingMin ? "warning" : "success"} />
-          <Stat label="Desconto previsto" value={brl(t.discountCents)} hint={data.provisional ? "Provisório" : "Revisado"} tone="danger" />
-          <Stat label="Custo coberturas" value={brl(t.coverageCostCents)} hint={`Impacto: ${brl(t.impactCents)}`} tone="info" />
+          {isFinancial ? (
+            <>
+              <Stat label="Desconto previsto" value={brl(t.discountCents)} hint={data.provisional ? "Provisório" : "Revisado"} tone="danger" />
+              <Stat label="Custo coberturas" value={brl(t.coverageCostCents)} hint={`Impacto: ${brl(t.impactCents)}`} tone="info" />
+            </>
+          ) : (
+            <Stat label="Financeiro" value="Restrito" hint="Requer perfil Financeiro/Admin" tone="neutral" />
+          )}
         </div>
       )}
       {data?.provisional && (
@@ -95,9 +102,9 @@ function Conferencia() {
           pageSize={40}
           empty="Nenhuma pessoa prevista na escala para esta data."
           cols={[
-            { header: "Funcionário", className: "whitespace-normal align-top", cell: (r) => <div className="min-w-0"><p className="font-medium"><span className="font-mono text-xs text-muted-foreground">{r.employee?.registration}</span> {r.employee?.name}</p><p className="text-xs text-muted-foreground">{r.post?.code} · {hhmm(r.schedule.start_time)}–{hhmm(r.schedule.end_time)}</p>{r.result.needMin > 0 && <><p className="mt-1 text-xs">Falta: {hours(r.result.absentMin)} | Cobertura: {hours(r.result.coveredMin)} | Dispensa: {hours(r.result.waivedMin)} | A descontar: {hours(r.result.uncoveredMin)}</p><p className="text-xs text-muted-foreground">Ausência {brl(Math.round(r.result.absentMin * r.unitCentsPerMin))} · abat. cobertura {brl(Math.round(r.result.coveredMin * r.unitCentsPerMin))} · abat. dispensa {brl(Math.round(r.result.waivedMin * r.unitCentsPerMin))} · desconto final {brl(r.result.discountCents)} · custo cobertura {brl(r.result.coverageCostCents)}</p>{r.coverages.filter(c => c.status !== "cancelada").map(c => <p key={c.id} className="text-xs text-muted-foreground">Cobertura: {c.day_worker?.name ?? c.employee?.name ?? c.supervisor?.full_name} · {hhmm(c.start_time)}–{hhmm(c.end_time)} · custo {brl(Math.round(Number(c.agreed_value) * 100))}</p>)}{r.result.waivedMin > 0 && <p className="text-xs text-info">Dispensado pelo tomador — sem desconto</p>}{r.result.pendingMin > 0 && <Pill tone="warning">Tratamento pendente</Pill>}</>}</div> },
+            { header: "Funcionário", className: "whitespace-normal align-top", cell: (r) => <div className="min-w-0"><p className="font-medium"><span className="font-mono text-xs text-muted-foreground">{r.employee?.registration}</span> {r.employee?.name}</p><p className="text-xs text-muted-foreground">{r.post?.code} · {hhmm(r.schedule.start_time)}–{hhmm(r.schedule.end_time)}</p>{r.result.needMin > 0 && <><p className="mt-1 text-xs">Falta: {hours(r.result.absentMin)} | Cobertura: {hours(r.result.coveredMin)} | Dispensa: {hours(r.result.waivedMin)} | A descontar: {hours(r.result.uncoveredMin)}</p>{isFinancial && <p className="text-xs text-muted-foreground">Ausência {brl(Math.round(r.result.absentMin * r.unitCentsPerMin))} · abat. cobertura {brl(Math.round(r.result.coveredMin * r.unitCentsPerMin))} · abat. dispensa {brl(Math.round(r.result.waivedMin * r.unitCentsPerMin))} · desconto final {brl(r.result.discountCents)} · custo cobertura {brl(r.result.coverageCostCents)}</p>}{r.coverages.filter(c => c.status !== "cancelada").map(c => <p key={c.id} className="text-xs text-muted-foreground">Cobertura: {c.day_worker?.name ?? c.employee?.name ?? c.supervisor?.full_name} · {hhmm(c.start_time)}–{hhmm(c.end_time)}{isFinancial && c.agreed_value ? ` · custo ${brl(Math.round(Number(c.agreed_value) * 100))}` : ""}</p>)}{r.result.waivedMin > 0 && <p className="text-xs text-info">Dispensado pelo tomador — sem desconto</p>}{r.result.pendingMin > 0 && <Pill tone="warning">Tratamento pendente</Pill>}</>}</div> },
             { header: "Situação", className: "whitespace-normal align-top", cell: (r) => <div className="flex flex-wrap gap-1"><Pill tone={attTone(r.attendance?.status)}>{r.attendance ? ATT_LABEL[r.attendance.status] : "Não informado"}</Pill>{r.attendance?.status?.startsWith("falta") && <Pill tone={r.attendance.justification_status === "aprovada" ? "success" : r.attendance.justification_status === "rejeitada" ? "danger" : "neutral"}>{JUST_LABEL[r.attendance.justification_status]}</Pill>}{r.divergences.filter((d) => d.status === "aberta").length > 0 && <Pill tone="warning">Divergência</Pill>}</div> },
-            { header: "Desconto cliente", className: "whitespace-normal align-top", cell: (r) => <span className="num">{r.result.discountCents ? brl(r.result.discountCents) : "—"}</span> },
+            { header: "Desconto cliente", className: "whitespace-normal align-top", cell: (r) => <span className="num">{isFinancial ? (r.result.discountCents ? brl(r.result.discountCents) : "—") : "🔒 Restrito"}</span> },
             { header: "Ações", className: "whitespace-normal align-top", cell: (r) => (
               <div className="flex flex-wrap gap-1">
                 <Button disabled={!canEdit} size="sm" variant="outline" onClick={() => quick(r, "presente")}>Presente</Button>

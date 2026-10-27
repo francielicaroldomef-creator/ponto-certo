@@ -6,6 +6,7 @@ import { brl, fmtDate, hours, todaySP } from "@/lib/format";
 import { useDefaultPeriod } from "@/hooks/use-period";
 import { ContractSelect, DataTable, PageHeader, Pill, Stat, useDefaultContract } from "@/components/ui-kit";
 import { DatePicker } from "@/components/date-picker";
+import { useMe } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/painel")({
   head: () => ({ meta: [{ title: "Painel geral — Portal do Supervisor" }] }),
@@ -15,7 +16,9 @@ export const Route = createFileRoute("/_authenticated/painel")({
 function Painel() {
   const [contract, setContract] = useDefaultContract();
   const [from, to, setFrom, setTo] = useDefaultPeriod();
-  const { data, isLoading } = useQuery({ queryKey: ["period", contract, from, to], queryFn: () => loadPeriod(contract, from, to), enabled: !!contract });
+  const { data: me } = useMe();
+  const isFinancial = !!me?.has("admin", "financeiro");
+  const { data, isLoading } = useQuery({ queryKey: ["period", contract, from, to, me?.roles?.join(",")], queryFn: () => loadPeriod(contract, from, to, me?.roles), enabled: !!contract });
 
   const view = useMemo(() => {
     if (!data) return null;
@@ -75,8 +78,14 @@ function Painel() {
             <Stat label="Coberturas pendentes" value={view.pendingCov} hint="planejadas ou confirmadas" tone="info" />
             <Stat label="Postos descobertos" value={view.uncoveredPosts} hint={`${hours(t.uncoveredMin)} descobertas`} tone="danger" />
             <Stat label="Divergências abertas" value={view.openDiv} tone={view.openDiv ? "warning" : "success"} />
-            <Stat label="Desconto previsto" value={brl(t.discountCents)} hint={data.provisional ? "Provisório" : "Revisado"} tone="danger" />
-            <Stat label="Custo das coberturas" value={brl(t.coverageCostCents)} hint={`Impacto das ocorrências: ${brl(t.impactCents)}`} tone="info" />
+            {isFinancial ? (
+              <>
+                <Stat label="Desconto previsto" value={brl(t.discountCents)} hint={data.provisional ? "Provisório" : "Revisado"} tone="danger" />
+                <Stat label="Custo das coberturas" value={brl(t.coverageCostCents)} hint={`Impacto das ocorrências: ${brl(t.impactCents)}`} tone="info" />
+              </>
+            ) : (
+              <Stat label="Financeiro" value="Restrito" hint="Apenas Administrador e Financeiro" tone="neutral" />
+            )}
             <Stat label="Horas efetivamente cobertas" value={hours(t.coveredMin)} tone="success" />
             <Stat label="Dispensa sem desconto" value={hours(t.waivedMin)} tone="info" />
             <Stat label="Tratamento pendente" value={hours(t.pendingMin)} tone={t.pendingMin ? "warning" : "success"} />
@@ -91,8 +100,10 @@ function Painel() {
             { header: "Cobertas", cell: (d) => hours(d.covered) },
             { header: "Dispensadas", cell: (d) => hours(d.waived) },
             { header: "Tratamento pendente", cell: (d) => hours(d.pending) },
-            { header: "Desconto", cell: (d) => <span className="num">{brl(d.discount)}</span> },
-            { header: "Custo cobertura", cell: (d) => <span className="num">{brl(d.cost)}</span> },
+            ...(isFinancial ? [
+              { header: "Desconto", cell: (d: any) => <span className="num">{brl(d.discount)}</span> },
+              { header: "Custo cobertura", cell: (d: any) => <span className="num">{brl(d.cost)}</span> },
+            ] : []),
             { header: "Divergências", cell: (d) => d.div ? <Pill tone="warning">{d.div} aberta(s)</Pill> : "—" },
           ]} />
         </>

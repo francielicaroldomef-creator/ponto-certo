@@ -13,6 +13,7 @@ import {
 } from "@/lib/treatment-conflicts";
 import { COV_LABEL, brl, brlValue, fmtDate, hhmm, hours } from "@/lib/format";
 import { useDefaultPeriod } from "@/hooks/use-period";
+import { useMe } from "@/hooks/use-auth";
 import { coverageIntervals, minToHHMM, suggestCoverageCents, total } from "@/lib/calc";
 import { ContractSelect, DataTable, Field, PageHeader, Pill, useDefaultContract, type Tone } from "@/components/ui-kit";
 import { DatePicker } from "@/components/date-picker";
@@ -46,7 +47,13 @@ function Coberturas() {
   const [from, to, setFrom, setTo] = useDefaultPeriod();
   const [open, setOpen] = useState(false);
   const qc = useQueryClient();
-  const { data } = useQuery({ queryKey: ["period", contract, from, to], queryFn: () => loadPeriod(contract, from, to), enabled: !!contract });
+  const { data: me } = useMe();
+  const isFinancial = !!me?.has("admin", "financeiro");
+  const { data } = useQuery({
+    queryKey: ["period", contract, from, to, me?.roles],
+    queryFn: () => loadPeriod(contract, from, to, me?.roles),
+    enabled: !!contract,
+  });
   const refresh = () => qc.invalidateQueries({ queryKey: ["period"] });
 
   const update = async (id: string, patch: any) => {
@@ -78,25 +85,27 @@ function Coberturas() {
           { header: "Responsável", cell: (c: any) => <div><p>{c.day_worker?.name ?? c.employee?.name}</p><p className="text-xs text-muted-foreground">{c.coverer_type === "diarista" ? "Diarista" : "Funcionário"}</p></div> },
           { header: "Horário", cell: (c: any) => `${hhmm(c.start_time)}–${hhmm(c.end_time)}${c.break_start ? ` (int. ${hhmm(c.break_start)}–${hhmm(c.break_end)})` : ""}` },
           { header: "Horas", cell: (c: any) => hours(total(coverageIntervals(c))) },
-          { header: "Valor", cell: (c: any) => <span className="num">{brlValue(c.agreed_value)}</span> },
+          { header: "Valor", cell: (c: any) => isFinancial ? <span className="num">{brlValue(c.agreed_value)}</span> : <span className="text-muted-foreground text-xs">🔒 Restrito</span> },
           { header: "Situação", cell: (c: any) => (
             <Select value={c.status} onValueChange={(v) => update(c.id, { status: v })}>
               <SelectTrigger className="h-8 w-36"><Pill tone={covTone(c.status)}>{COV_LABEL[c.status]}</Pill></SelectTrigger>
               <SelectContent>{Object.entries(COV_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
             </Select>
           ) },
-          { header: "Pagamento", cell: (c: any) => (
+          { header: "Pagamento", cell: (c: any) => isFinancial ? (
             <Button size="sm" variant="outline" onClick={() => update(c.id, { payment_status: c.payment_status === "pago" ? "pendente" : "pago" })}>
               <Pill tone={c.payment_status === "pago" ? "success" : "warning"}>{c.payment_status === "pago" ? "Pago" : "Pendente"}</Pill>
             </Button>
+          ) : (
+            <Pill tone={c.payment_status === "pago" ? "success" : "warning"}>{c.payment_status === "pago" ? "Pago" : "Pendente"}</Pill>
           ) },
         ]} />
-      {open && <NewCoverage contract={contract} rows={data?.rows ?? []} onClose={() => setOpen(false)} onSaved={() => { setOpen(false); refresh(); }} />}
+      {open && <NewCoverage contract={contract} rows={data?.rows ?? []} isFinancial={isFinancial} onClose={() => setOpen(false)} onSaved={() => { setOpen(false); refresh(); }} />}
     </div>
   );
 }
 
-function NewCoverage({ contract, rows, onClose, onSaved }: { contract: string; rows: DayRow[]; onClose: () => void; onSaved: () => void }) {
+function NewCoverage({ contract, rows, isFinancial, onClose, onSaved }: { contract: string; rows: DayRow[]; isFinancial: boolean; onClose: () => void; onSaved: () => void }) {
   const needs = rows.filter((r) => r.result.needMin > 0);
   const [needId, setNeedId] = useState(needs.find((r) => r.result.uncoveredMin > 0)?.schedule.id ?? "");
   const need = needs.find((r) => r.schedule.id === needId);
@@ -261,9 +270,9 @@ function NewCoverage({ contract, rows, onClose, onSaved }: { contract: string; r
             <Field label="Int. início"><Input type="time" value={bs} onChange={(e) => setBs(e.target.value)} /></Field>
             <Field label="Int. fim"><Input type="time" value={be} onChange={(e) => setBe(e.target.value)} /></Field>
           </div>
-          <p className="text-xs text-muted-foreground">Horas cobertas: {hours(minutes)}{useBreak ? " (intervalo descontado)" : " (intervalo fora do período)"}. Valor sugerido: {brl(suggested)}</p>
+          <p className="text-xs text-muted-foreground">Horas cobertas: {hours(minutes)}{useBreak ? " (intervalo descontado)" : " (intervalo fora do período)"}.{isFinancial && suggested > 0 ? ` Valor sugerido: ${brl(suggested)}` : ""}</p>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Valor combinado (R$)"><Input inputMode="decimal" placeholder={(suggested / 100).toFixed(2)} value={value} onChange={(e) => setValue(e.target.value)} /></Field>
+            <Field label="Valor combinado (R$)"><Input inputMode="decimal" placeholder={isFinancial && suggested > 0 ? (suggested / 100).toFixed(2) : "0,00"} value={value} onChange={(e) => setValue(e.target.value)} /></Field>
             <Field label="Situação">
               <Select value={status} onValueChange={setStatus}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
