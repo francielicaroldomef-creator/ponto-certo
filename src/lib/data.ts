@@ -209,3 +209,59 @@ export function errMsg(e: unknown): string {
   return String(e);
 }
 
+export interface BatchPostInput {
+  id?: string;
+  contract_id: string;
+  code: string;
+  workplace: string;
+  city: string;
+  role_name?: string;
+  required_qty?: number;
+  active?: boolean;
+}
+
+/**
+ * Persists posts in batch linked to a contract and city.
+ * Fills safe legacy defaults for start/end/break hours without exposing them.
+ */
+export async function upsertContractPostsBatch(
+  contractId: string,
+  posts: BatchPostInput[],
+  deletedPostIds?: string[]
+): Promise<{ count: number }> {
+  if (deletedPostIds && deletedPostIds.length > 0) {
+    const { error: delErr } = await supabase.from("posts").delete().in("id", deletedPostIds);
+    if (delErr) {
+      // If foreign key constraint (e.g. linked schedules) prevents hard deletion, soft delete
+      await supabase.from("posts").update({ active: false }).in("id", deletedPostIds);
+    }
+  }
+
+  if (posts.length === 0) {
+    return { count: 0 };
+  }
+
+  const rows = posts.map((p) => ({
+    ...(p.id ? { id: p.id } : {}),
+    contract_id: contractId,
+    code: p.code.trim(),
+    workplace: p.workplace.trim() || `Posto ${p.code.trim()}`,
+    city: p.city.trim(),
+    role_name: p.role_name?.trim() || "Servente de Limpeza",
+    required_qty: p.required_qty && p.required_qty > 0 ? Number(p.required_qty) : 1,
+    active: p.active ?? true,
+    start_time: "08:00",
+    end_time: "17:00",
+    break_start: "12:00",
+    break_end: "13:00",
+    shift: "Diurno",
+    day_value: 0,
+    hour_value: 0,
+  }));
+
+  const { error } = await supabase.from("posts").upsert(rows, { onConflict: "contract_id,code" });
+  if (error) throw error;
+
+  return { count: rows.length };
+}
+
