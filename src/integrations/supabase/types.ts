@@ -267,6 +267,7 @@ export type Database = {
           name: string
           operating_weekdays: number[]
           required_headcount: number
+          required_posts?: number | null
           start_date: string
           supervisor_id: string | null
           supervisor_name: string | null
@@ -284,6 +285,7 @@ export type Database = {
           name: string
           operating_weekdays?: number[]
           required_headcount?: number
+          required_posts?: number | null
           start_date: string
           supervisor_id?: string | null
           supervisor_name?: string | null
@@ -301,6 +303,7 @@ export type Database = {
           name?: string
           operating_weekdays?: number[]
           required_headcount?: number
+          required_posts?: number | null
           start_date?: string
           supervisor_id?: string | null
           supervisor_name?: string | null

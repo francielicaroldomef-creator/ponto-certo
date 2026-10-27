@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useContracts } from "@/hooks/use-auth";
 import { upsertContractPostsBatch, type BatchPostInput } from "@/lib/data";
+import { RS_CITIES, isRSCity } from "@/lib/rs-cities";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +29,8 @@ import {
   Briefcase,
   Users,
   RefreshCw,
+  ShieldCheck,
+  AlertTriangle,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/postos")({
@@ -61,6 +64,22 @@ const COMMON_ROLES = [
   "Zelador",
   "Jardineiro",
   "Recepcionista",
+];
+
+// Principais cidades do RS para sugestão rápida com 1 clique
+const POPULAR_RS_CITIES = [
+  "Erechim",
+  "Triunfo",
+  "Porto Alegre",
+  "Caxias do Sul",
+  "Passo Fundo",
+  "Pelotas",
+  "Santa Maria",
+  "Canoas",
+  "Bento Gonçalves",
+  "Novo Hamburgo",
+  "Lajeado",
+  "Santa Cruz do Sul",
 ];
 
 function generateCode(cityName: string, index: number, existingCodes: Set<string>): string {
@@ -107,6 +126,21 @@ export function PostosHierarquicos() {
     return (contracts ?? []).find((c) => c.id === selectedContractId);
   }, [contracts, selectedContractId]);
 
+  // LIMITES OFICIAIS DO CONTRATO
+  const contractLimitPosts = useMemo(() => {
+    const rawPosts = (selectedContract as any)?.required_posts;
+    const rawHeadcount = selectedContract?.required_headcount;
+    if (typeof rawPosts === "number" && rawPosts > 0) return rawPosts;
+    if (typeof rawHeadcount === "number" && rawHeadcount > 0) return rawHeadcount;
+    return 30; // Padrão oficial CT-001 PGE
+  }, [selectedContract]);
+
+  const contractLimitStaff = useMemo(() => {
+    const rawHeadcount = selectedContract?.required_headcount;
+    if (typeof rawHeadcount === "number" && rawHeadcount > 0) return rawHeadcount;
+    return 30; // Padrão oficial CT-001 PGE
+  }, [selectedContract]);
+
   // Load posts for the selected contract from Supabase
   const { data: rawPosts, isLoading: isLoadingPosts, refetch: refetchPosts } = useQuery({
     queryKey: ["contract-posts", selectedContractId],
@@ -132,7 +166,7 @@ export function PostosHierarquicos() {
       const cityMap = new Map<string, PostGridItem[]>();
 
       for (const p of rawPosts) {
-        const cityName = (p.city || selectedContract?.city || "Cidade Principal").trim();
+        const cityName = (p.city || selectedContract?.city || "Erechim").trim();
         const item: PostGridItem = {
           tempId: p.id,
           id: p.id,
@@ -163,17 +197,12 @@ export function PostosHierarquicos() {
       setHasChanges(false);
       setActiveCityTab("all");
     } else if (rawPosts && rawPosts.length === 0) {
-      // Default initial state: For CT-001 (PGE), load all 30 official posts (P01 a P30)
-      const initialCityName = selectedContract?.city || "Florianópolis";
-      const officialCount =
-        selectedContract?.required_headcount && selectedContract.required_headcount > 0
-          ? selectedContract.required_headcount
-          : selectedContract?.code === "CT-001"
-          ? 30
-          : 1;
+      // Carga inicial: distribui os postos previstos no contrato
+      const initialCityName = selectedContract?.city || "Erechim";
+      const totalPostsToCreate = contractLimitPosts;
 
       const generatedPosts: PostGridItem[] = [];
-      for (let i = 0; i < officialCount; i++) {
+      for (let i = 0; i < totalPostsToCreate; i++) {
         generatedPosts.push({
           tempId: `temp-${Date.now()}-${i + 1}`,
           code: `P${String(i + 1).padStart(2, "0")}`,
@@ -188,7 +217,7 @@ export function PostosHierarquicos() {
         {
           id: `city-1`,
           name: initialCityName,
-          targetQty: officialCount,
+          targetQty: totalPostsToCreate,
           posts: generatedPosts,
         },
       ]);
@@ -196,11 +225,48 @@ export function PostosHierarquicos() {
       setHasChanges(false);
       setActiveCityTab("all");
     }
-  }, [rawPosts, selectedContractId, selectedContract?.city, selectedContract?.code, selectedContract?.required_headcount]);
+  }, [rawPosts, selectedContractId, selectedContract?.city, contractLimitPosts]);
+
+  // Overall Statistics & Limits Verification
+  const stats = useMemo(() => {
+    const totalCities = cities.length;
+    let totalPlannedPosts = 0;
+    let totalActualPosts = 0;
+    let totalAllocatedStaff = 0;
+    let activePostsCount = 0;
+
+    for (const c of cities) {
+      totalPlannedPosts += c.targetQty || 0;
+      totalActualPosts += c.posts.length;
+      for (const p of c.posts) {
+        if (p.active) {
+          activePostsCount++;
+          totalAllocatedStaff += p.required_qty || 1;
+        }
+      }
+    }
+
+    const remainingPosts = contractLimitPosts - totalPlannedPosts;
+    const remainingStaff = contractLimitStaff - totalAllocatedStaff;
+    const isExactMatch = totalPlannedPosts === contractLimitPosts && totalAllocatedStaff === contractLimitStaff;
+    const isExceeded = totalPlannedPosts > contractLimitPosts || totalAllocatedStaff > contractLimitStaff;
+
+    return {
+      totalCities,
+      totalPlannedPosts,
+      totalActualPosts,
+      totalAllocatedStaff,
+      activePostsCount,
+      remainingPosts,
+      remainingStaff,
+      isExactMatch,
+      isExceeded,
+    };
+  }, [cities, contractLimitPosts, contractLimitStaff]);
 
   // Enforce/Reset to the 30 official posts (P01 a P30)
   const handleRestore30Posts = useCallback(() => {
-    const cityName = selectedContract?.city || "Florianópolis";
+    const cityName = selectedContract?.city || "Erechim";
     const officialPosts: PostGridItem[] = [];
     const removedIds: string[] = [];
 
@@ -244,85 +310,90 @@ export function PostosHierarquicos() {
     toast.info("Ajustado para os 30 postos oficiais (P01 a P30). Clique em 'Salvar Cidades e Postos' para sincronizar.");
   }, [rawPosts, selectedContract?.city]);
 
-  // Overall Statistics
-  const stats = useMemo(() => {
-    const totalCities = cities.length;
-    let totalPosts = 0;
-    let totalRequiredStaff = 0;
-    let activePostsCount = 0;
-
-    for (const c of cities) {
-      totalPosts += c.posts.length;
-      for (const p of c.posts) {
-        if (p.active) {
-          activePostsCount++;
-          totalRequiredStaff += p.required_qty || 1;
-        }
-      }
-    }
-
-    return {
-      totalCities,
-      totalPosts,
-      totalRequiredStaff,
-      activePostsCount,
-    };
-  }, [cities]);
-
   // --- Handlers for Cidades (Card 2) ---
 
-  const handleCityCountChange = useCallback((newCountRaw: number) => {
-    const newCount = Math.max(1, Math.min(newCountRaw || 1, 50));
-    setCities((prev) => {
-      if (newCount === prev.length) return prev;
+  const handleCityCountChange = useCallback(
+    (newCountRaw: number) => {
+      const newCount = Math.max(1, Math.min(newCountRaw || 1, 50));
+      setCities((prev) => {
+        if (newCount === prev.length) return prev;
 
-      if (newCount > prev.length) {
-        const added: CityGroupItem[] = [];
-        const existingCodes = new Set(prev.flatMap((c) => c.posts.map((p) => p.code)));
+        if (newCount > prev.length) {
+          // Check if there is quota remaining to distribute
+          const currentPlanned = prev.reduce((s, c) => s + c.targetQty, 0);
+          const availableQuota = contractLimitPosts - currentPlanned;
 
-        for (let i = prev.length; i < newCount; i++) {
-          const defaultName = `Cidade ${i + 1}`;
-          const code = generateCode(defaultName, 0, existingCodes);
-          existingCodes.add(code);
+          if (availableQuota <= 0) {
+            toast.warning(
+              `Todos os ${contractLimitPosts} postos já foram distribuídos. Reduza a quantidade de postos em outra cidade para adicionar uma nova.`
+            );
+            return prev;
+          }
 
-          added.push({
-            id: `city-${Date.now()}-${i}`,
-            name: defaultName,
-            targetQty: 1,
-            posts: [
-              {
-                tempId: `temp-${Date.now()}-${i}`,
-                code,
-                workplace: "",
-                role_name: "Servente de Limpeza",
-                required_qty: 1,
-                active: true,
-              },
-            ],
-          });
+          const added: CityGroupItem[] = [];
+          const existingCodes = new Set(prev.flatMap((c) => c.posts.map((p) => p.code)));
+
+          for (let i = prev.length; i < newCount; i++) {
+            // Se não sobrar cota, não adiciona mais
+            const currentTotalAdded = added.reduce((s, a) => s + a.targetQty, 0);
+            if (currentPlanned + currentTotalAdded >= contractLimitPosts) {
+              break;
+            }
+
+            const defaultName = POPULAR_RS_CITIES[i % POPULAR_RS_CITIES.length] || `Cidade ${i + 1}`;
+            const code = generateCode(defaultName, 0, existingCodes);
+            existingCodes.add(code);
+
+            added.push({
+              id: `city-${Date.now()}-${i}`,
+              name: defaultName,
+              targetQty: 1,
+              posts: [
+                {
+                  tempId: `temp-${Date.now()}-${i}`,
+                  code,
+                  workplace: "",
+                  role_name: "Servente de Limpeza",
+                  required_qty: 1,
+                  active: true,
+                },
+              ],
+            });
+          }
+          return [...prev, ...added];
+        } else {
+          // Decreasing count: track any deleted DB posts
+          const removed = prev.slice(newCount);
+          const removedIds = removed
+            .flatMap((c) => c.posts)
+            .map((p) => p.id)
+            .filter((id): id is string => Boolean(id));
+
+          if (removedIds.length > 0) {
+            setDeletedPostIds((old) => [...old, ...removedIds]);
+          }
+          return prev.slice(0, newCount);
         }
-        return [...prev, ...added];
-      } else {
-        // Decreasing count: track any deleted DB posts
-        const removed = prev.slice(newCount);
-        const removedIds = removed
-          .flatMap((c) => c.posts)
-          .map((p) => p.id)
-          .filter((id): id is string => Boolean(id));
-
-        if (removedIds.length > 0) {
-          setDeletedPostIds((old) => [...old, ...removedIds]);
-        }
-        return prev.slice(0, newCount);
-      }
-    });
-    setHasChanges(true);
-  }, []);
+      });
+      setHasChanges(true);
+    },
+    [contractLimitPosts]
+  );
 
   const handleAddCity = useCallback(() => {
     setCities((prev) => {
+      const currentPlanned = prev.reduce((s, c) => s + c.targetQty, 0);
+      const remaining = contractLimitPosts - currentPlanned;
+
+      if (remaining <= 0) {
+        toast.warning(
+          `Todos os ${contractLimitPosts} postos contratados já estão distribuídos. Ajuste as quantidades existentes para liberar vagas.`
+        );
+        return prev;
+      }
+
       const idx = prev.length + 1;
-      const defaultName = `Cidade ${idx}`;
+      const defaultName = POPULAR_RS_CITIES[(idx - 1) % POPULAR_RS_CITIES.length] || `Cidade ${idx}`;
       const existingCodes = new Set(prev.flatMap((c) => c.posts.map((p) => p.code)));
       const code = generateCode(defaultName, 0, existingCodes);
 
@@ -346,7 +417,7 @@ export function PostosHierarquicos() {
       ];
     });
     setHasChanges(true);
-  }, []);
+  }, [contractLimitPosts]);
 
   const handleUpdateCityName = useCallback((cityId: string, newName: string) => {
     setCities((prev) =>
@@ -355,38 +426,53 @@ export function PostosHierarquicos() {
     setHasChanges(true);
   }, []);
 
-  const handleUpdateCityTargetQty = useCallback((cityId: string, targetQtyRaw: number) => {
-    const targetQty = Math.max(1, Math.min(targetQtyRaw || 1, 100));
+  const handleUpdateCityTargetQty = useCallback(
+    (cityId: string, targetQtyRaw: number) => {
+      setCities((prev) => {
+        const otherCitiesSum = prev
+          .filter((c) => c.id !== cityId)
+          .reduce((s, c) => s + c.targetQty, 0);
 
-    setCities((prev) =>
-      prev.map((c) => {
-        if (c.id !== cityId) return c;
+        const maxAllowedForThisCity = Math.max(1, contractLimitPosts - otherCitiesSum);
+        let safeTarget = Math.max(1, Math.min(targetQtyRaw || 1, maxAllowedForThisCity));
 
-        const currentPosts = [...c.posts];
-        if (targetQty > currentPosts.length) {
-          const allCodes = new Set(prev.flatMap((x) => x.posts.map((p) => p.code)));
-          for (let i = currentPosts.length; i < targetQty; i++) {
-            const code = generateCode(c.name, i, allCodes);
-            allCodes.add(code);
-            currentPosts.push({
-              tempId: `temp-${Date.now()}-${i}`,
-              code,
-              workplace: "",
-              role_name: "Servente de Limpeza",
-              required_qty: 1,
-              active: true,
-            });
-          }
+        if (targetQtyRaw > maxAllowedForThisCity) {
+          toast.warning(
+            `Limite máximo do contrato atingido: esta cidade pode ter no máximo ${maxAllowedForThisCity} postos para não ultrapassar o total de ${contractLimitPosts}.`
+          );
+          safeTarget = maxAllowedForThisCity;
         }
-        return {
-          ...c,
-          targetQty,
-          posts: currentPosts,
-        };
-      })
-    );
-    setHasChanges(true);
-  }, []);
+
+        return prev.map((c) => {
+          if (c.id !== cityId) return c;
+
+          const currentPosts = [...c.posts];
+          if (safeTarget > currentPosts.length) {
+            const allCodes = new Set(prev.flatMap((x) => x.posts.map((p) => p.code)));
+            for (let i = currentPosts.length; i < safeTarget; i++) {
+              const code = generateCode(c.name, i, allCodes);
+              allCodes.add(code);
+              currentPosts.push({
+                tempId: `temp-${Date.now()}-${i}`,
+                code,
+                workplace: "",
+                role_name: "Servente de Limpeza",
+                required_qty: 1,
+                active: true,
+              });
+            }
+          }
+          return {
+            ...c,
+            targetQty: safeTarget,
+            posts: currentPosts,
+          };
+        });
+      });
+      setHasChanges(true);
+    },
+    [contractLimitPosts]
+  );
 
   const handleRemoveCity = useCallback((cityId: string) => {
     setCities((prev) => {
@@ -417,99 +503,163 @@ export function PostosHierarquicos() {
           if (c.id !== cityId) return c;
           return {
             ...c,
-            posts: c.posts.map((p) => (p.tempId === tempId ? { ...p, [field]: value } : p)),
+            posts: c.posts.map((p) => {
+              if (p.tempId !== tempId) return p;
+
+              if (field === "required_qty") {
+                const parsedQty = Math.max(1, parseInt(value, 10) || 1);
+                // Check if total staff would exceed limit
+                let currentTotalStaff = 0;
+                for (const cityItem of prev) {
+                  for (const postItem of cityItem.posts) {
+                    if (postItem.tempId === tempId) {
+                      currentTotalStaff += parsedQty;
+                    } else {
+                      currentTotalStaff += postItem.required_qty || 1;
+                    }
+                  }
+                }
+
+                if (currentTotalStaff > contractLimitStaff) {
+                  toast.warning(
+                    `O efetivo total não pode exceder as ${contractLimitStaff} pessoas contratadas.`
+                  );
+                  return p;
+                }
+                return { ...p, required_qty: parsedQty };
+              }
+
+              return { ...p, [field]: value };
+            }),
           };
         })
       );
       setHasChanges(true);
     },
-    []
+    [contractLimitStaff]
   );
 
-  const handleAddPostToCity = useCallback((cityId: string) => {
-    setCities((prev) =>
-      prev.map((c) => {
-        if (c.id !== cityId) return c;
-        const allCodes = new Set(prev.flatMap((x) => x.posts.map((p) => p.code)));
-        const newCode = generateCode(c.name, c.posts.length, allCodes);
+  const handleAddPostToCity = useCallback(
+    (cityId: string) => {
+      setCities((prev) => {
+        const totalPostsCount = prev.reduce((s, c) => s + c.posts.length, 0);
+        if (totalPostsCount >= contractLimitPosts) {
+          toast.error(
+            `Limite máximo do contrato atingido: não é permitido cadastrar mais de ${contractLimitPosts} postos.`
+          );
+          return prev;
+        }
 
-        const newPost: PostGridItem = {
-          tempId: `temp-${Date.now()}-${c.posts.length}`,
-          code: newCode,
-          workplace: "",
-          role_name: "Servente de Limpeza",
-          required_qty: 1,
-          active: true,
-        };
+        return prev.map((c) => {
+          if (c.id !== cityId) return c;
+          const allCodes = new Set(prev.flatMap((x) => x.posts.map((p) => p.code)));
+          const newCode = generateCode(c.name, c.posts.length, allCodes);
 
-        return {
-          ...c,
-          targetQty: Math.max(c.targetQty, c.posts.length + 1),
-          posts: [...c.posts, newPost],
-        };
-      })
-    );
-    setHasChanges(true);
-  }, []);
-
-  const handleAddMultiplePostsToCity = useCallback((cityId: string, count: number = 5) => {
-    setCities((prev) =>
-      prev.map((c) => {
-        if (c.id !== cityId) return c;
-        const allCodes = new Set(prev.flatMap((x) => x.posts.map((p) => p.code)));
-        const newPosts: PostGridItem[] = [];
-
-        for (let i = 0; i < count; i++) {
-          const newCode = generateCode(c.name, c.posts.length + i, allCodes);
-          allCodes.add(newCode);
-          newPosts.push({
-            tempId: `temp-${Date.now()}-${c.posts.length + i}`,
+          const newPost: PostGridItem = {
+            tempId: `temp-${Date.now()}-${c.posts.length}`,
             code: newCode,
             workplace: "",
             role_name: "Servente de Limpeza",
             required_qty: 1,
             active: true,
-          });
+          };
+
+          return {
+            ...c,
+            targetQty: Math.max(c.targetQty, c.posts.length + 1),
+            posts: [...c.posts, newPost],
+          };
+        });
+      });
+      setHasChanges(true);
+    },
+    [contractLimitPosts]
+  );
+
+  const handleAddMultiplePostsToCity = useCallback(
+    (cityId: string, count: number = 5) => {
+      setCities((prev) => {
+        const totalPostsCount = prev.reduce((s, c) => s + c.posts.length, 0);
+        const available = contractLimitPosts - totalPostsCount;
+
+        if (available <= 0) {
+          toast.error(
+            `Limite de ${contractLimitPosts} postos já atingido. Não é permitido adicionar mais postos.`
+          );
+          return prev;
         }
 
-        return {
-          ...c,
-          targetQty: c.posts.length + count,
-          posts: [...c.posts, ...newPosts],
-        };
-      })
-    );
-    setHasChanges(true);
-  }, []);
+        const countToAdd = Math.min(count, available);
 
-  const handleDuplicatePost = useCallback((cityId: string, tempId: string) => {
-    setCities((prev) =>
-      prev.map((c) => {
-        if (c.id !== cityId) return c;
-        const target = c.posts.find((p) => p.tempId === tempId);
-        if (!target) return c;
+        return prev.map((c) => {
+          if (c.id !== cityId) return c;
+          const allCodes = new Set(prev.flatMap((x) => x.posts.map((p) => p.code)));
+          const newPosts: PostGridItem[] = [];
 
-        const allCodes = new Set(prev.flatMap((x) => x.posts.map((p) => p.code)));
-        const newCode = generateCode(c.name, c.posts.length, allCodes);
+          for (let i = 0; i < countToAdd; i++) {
+            const newCode = generateCode(c.name, c.posts.length + i, allCodes);
+            allCodes.add(newCode);
+            newPosts.push({
+              tempId: `temp-${Date.now()}-${c.posts.length + i}`,
+              code: newCode,
+              workplace: "",
+              role_name: "Servente de Limpeza",
+              required_qty: 1,
+              active: true,
+            });
+          }
 
-        const cloned: PostGridItem = {
-          tempId: `temp-${Date.now()}`,
-          code: newCode,
-          workplace: target.workplace ? `${target.workplace} (Cópia)` : "",
-          role_name: target.role_name,
-          required_qty: target.required_qty,
-          active: true,
-        };
+          return {
+            ...c,
+            targetQty: c.posts.length + countToAdd,
+            posts: [...c.posts, ...newPosts],
+          };
+        });
+      });
+      setHasChanges(true);
+    },
+    [contractLimitPosts]
+  );
 
-        return {
-          ...c,
-          targetQty: Math.max(c.targetQty, c.posts.length + 1),
-          posts: [...c.posts, cloned],
-        };
-      })
-    );
-    setHasChanges(true);
-  }, []);
+  const handleDuplicatePost = useCallback(
+    (cityId: string, tempId: string) => {
+      setCities((prev) => {
+        const totalPostsCount = prev.reduce((s, c) => s + c.posts.length, 0);
+        if (totalPostsCount >= contractLimitPosts) {
+          toast.error(
+            `Limite máximo do contrato atingido (${contractLimitPosts} postos). Não é permitido duplicar.`
+          );
+          return prev;
+        }
+
+        return prev.map((c) => {
+          if (c.id !== cityId) return c;
+          const target = c.posts.find((p) => p.tempId === tempId);
+          if (!target) return c;
+
+          const allCodes = new Set(prev.flatMap((x) => x.posts.map((p) => p.code)));
+          const newCode = generateCode(c.name, c.posts.length, allCodes);
+
+          const cloned: PostGridItem = {
+            tempId: `temp-${Date.now()}`,
+            code: newCode,
+            workplace: target.workplace ? `${target.workplace} (Cópia)` : "",
+            role_name: target.role_name,
+            required_qty: target.required_qty,
+            active: true,
+          };
+
+          return {
+            ...c,
+            targetQty: Math.max(c.targetQty, c.posts.length + 1),
+            posts: [...c.posts, cloned],
+          };
+        });
+      });
+      setHasChanges(true);
+    },
+    [contractLimitPosts]
+  );
 
   const handleRemovePost = useCallback((cityId: string, tempId: string) => {
     setCities((prev) =>
@@ -543,7 +693,6 @@ export function PostosHierarquicos() {
         if (postIndex === postsCount - 1) {
           handleAddPostToCity(cityId);
         } else {
-          // Focus the next row's input with the same column if possible
           const nextInput = document.querySelector<HTMLInputElement>(
             `input[data-city-id="${cityId}"][data-row-index="${postIndex + 1}"]`
           );
@@ -561,10 +710,25 @@ export function PostosHierarquicos() {
       return;
     }
 
+    // Validação estrita de limites
+    if (stats.totalActualPosts > contractLimitPosts) {
+      toast.error(
+        `Bloqueado: O número de postos cadastrados (${stats.totalActualPosts}) não pode exceder o total contratado (${contractLimitPosts}).`
+      );
+      return;
+    }
+
+    if (stats.totalAllocatedStaff > contractLimitStaff) {
+      toast.error(
+        `Bloqueado: O efetivo alocado (${stats.totalAllocatedStaff}) não pode exceder as ${contractLimitStaff} vagas do contrato.`
+      );
+      return;
+    }
+
     // Validate that cities have names
     for (let i = 0; i < cities.length; i++) {
       if (!cities[i].name.trim()) {
-        toast.error(`Informe o nome da cidade #${i + 1}.`);
+        toast.error(`Informe ou selecione a cidade do Rio Grande do Sul na linha #${i + 1}.`);
         return;
       }
     }
@@ -603,8 +767,8 @@ export function PostosHierarquicos() {
         deletedPostIds
       );
 
-      // Sincronizar cidade principal no contrato se ainda não preenchida
-      if (cities[0]?.name && (!selectedContract?.city || selectedContract.city === "Não informada")) {
+      // Sincronizar cidade principal no contrato se aplicável
+      if (cities[0]?.name) {
         await supabase
           .from("contracts")
           .update({ city: cities[0].name.trim() })
@@ -633,15 +797,22 @@ export function PostosHierarquicos() {
 
   return (
     <div className="space-y-6 pb-28">
+      {/* Datalist global padronizado com as cidades do RS */}
+      <datalist id="rs-cities-datalist">
+        {RS_CITIES.map((cidade) => (
+          <option key={cidade} value={cidade} />
+        ))}
+      </datalist>
+
       {/* Top Banner / Header */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b pb-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
             <Table2 className="h-6 w-6 text-primary" />
-            Postos de Trabalho
+            Distribuição de Postos e Cidades
           </h1>
           <p className="text-sm text-muted-foreground">
-            Fluxo operacional guiado por contrato e cidades com edição rápida em lote estilo planilha (Excel).
+            Gestão operacional por contrato e cidades do Rio Grande do Sul limitada rigorosamente ao previsto no contrato.
           </p>
         </div>
 
@@ -649,15 +820,29 @@ export function PostosHierarquicos() {
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline" className="px-3 py-1 font-mono text-xs flex items-center gap-1.5">
             <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="font-semibold text-foreground">{stats.totalCities}</span> Cidades
+            <span className="font-semibold text-foreground">{stats.totalCities}</span> Cidades (RS)
           </Badge>
-          <Badge variant="outline" className="px-3 py-1 font-mono text-xs flex items-center gap-1.5">
-            <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="font-semibold text-foreground">{stats.totalPosts}</span> Postos
+          <Badge
+            variant={stats.isExactMatch ? "secondary" : "outline"}
+            className={`px-3 py-1 font-mono text-xs flex items-center gap-1.5 ${
+              stats.isExactMatch
+                ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-300"
+                : ""
+            }`}
+          >
+            <MapPin className="h-3.5 w-3.5" />
+            <span className="font-semibold">{stats.totalActualPosts} / {contractLimitPosts}</span> Postos
           </Badge>
-          <Badge variant="outline" className="px-3 py-1 font-mono text-xs flex items-center gap-1.5">
-            <Users className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="font-semibold text-foreground">{stats.totalRequiredStaff}</span> Vagas / Efetivo
+          <Badge
+            variant={stats.isExactMatch ? "secondary" : "outline"}
+            className={`px-3 py-1 font-mono text-xs flex items-center gap-1.5 ${
+              stats.isExactMatch
+                ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-300"
+                : ""
+            }`}
+          >
+            <Users className="h-3.5 w-3.5" />
+            <span className="font-semibold">{stats.totalAllocatedStaff} / {contractLimitStaff}</span> Efetivo
           </Badge>
           {hasChanges && (
             <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-300 px-3 py-1 text-xs animate-pulse">
@@ -676,10 +861,10 @@ export function PostosHierarquicos() {
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
                   1
                 </span>
-                Seleção do Contrato de Atuação
+                Seleção do Contrato de Atuação e Limites Contratuais
               </CardTitle>
               <CardDescription>
-                Escolha o contrato para carregar e gerenciar a estrutura operacional de cidades e postos.
+                A quantidade de postos e efetivo cadastrados no contrato serve como limite inegociável para a distribuição nas cidades.
               </CardDescription>
             </div>
           </div>
@@ -729,8 +914,14 @@ export function PostosHierarquicos() {
                   </span>
                 </div>
                 <div className="flex items-center justify-between border-t pt-1">
-                  <span className="text-muted-foreground">Efetivo Oficial:</span>
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                  <span className="text-muted-foreground">Postos Contratados:</span>
+                  <span className="font-bold text-primary font-mono text-xs">
+                    {contractLimitPosts} Postos
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Efetivo Contratado:</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono text-xs">
                     {selectedContract.required_headcount || 30} Postos
                   </span>
                 </div>
@@ -753,7 +944,7 @@ export function PostosHierarquicos() {
         </CardContent>
       </Card>
 
-      {/* 🧭 CARD 2: Definição e Cadastro das Cidades de Atuação (Grade Excel) */}
+      {/* 🧭 CARD 2: Cidades de Atuação (RS) e Distribuição da Cota */}
       <Card className="border-border shadow-sm">
         <CardHeader className="pb-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -762,10 +953,10 @@ export function PostosHierarquicos() {
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
                   2
                 </span>
-                Cidades Atendidas pelo Contrato (Grade Excel)
+                Cidades de Atuação no Rio Grande do Sul (Grade Excel)
               </CardTitle>
               <CardDescription>
-                Informe a quantidade de cidades e a previsão de postos para cada localidade.
+                Selecione as cidades padronizadas do RS e distribua os <strong>{contractLimitPosts} postos</strong> sem ultrapassar o limite do contrato.
               </CardDescription>
             </div>
 
@@ -778,7 +969,7 @@ export function PostosHierarquicos() {
                 id="city-count-input"
                 type="number"
                 min={1}
-                max={50}
+                max={contractLimitPosts}
                 className="w-20 h-8 text-center font-bold bg-background text-sm"
                 value={cities.length}
                 onChange={(e) => handleCityCountChange(parseInt(e.target.value, 10))}
@@ -788,6 +979,7 @@ export function PostosHierarquicos() {
                 variant="default"
                 size="sm"
                 onClick={handleAddCity}
+                disabled={stats.remainingPosts <= 0}
                 className="h-8 gap-1.5 text-xs"
               >
                 <Plus className="h-3.5 w-3.5" />
@@ -795,27 +987,84 @@ export function PostosHierarquicos() {
               </Button>
             </div>
           </div>
+
+          {/* Barra de Status da Distribuição (Limites Inegociáveis) */}
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 p-3 rounded-lg border bg-muted/30 text-xs">
+            <div className="flex items-center justify-between sm:justify-start gap-2">
+              <span className="text-muted-foreground">Postos Contratados:</span>
+              <span className="font-bold text-foreground font-mono">{contractLimitPosts}</span>
+            </div>
+            <div className="flex items-center justify-between sm:justify-start gap-2">
+              <span className="text-muted-foreground">Postos Distribuídos:</span>
+              <span className={`font-bold font-mono ${stats.totalPlannedPosts === contractLimitPosts ? "text-emerald-600" : "text-amber-600"}`}>
+                {stats.totalPlannedPosts} / {contractLimitPosts}
+              </span>
+            </div>
+            <div className="flex items-center justify-between sm:justify-start gap-2">
+              <span className="text-muted-foreground">Saldo a Distribuir:</span>
+              <span className={`font-bold font-mono ${stats.remainingPosts === 0 ? "text-emerald-600" : stats.remainingPosts < 0 ? "text-destructive" : "text-amber-600"}`}>
+                {stats.remainingPosts} {stats.remainingPosts === 1 ? "posto" : "postos"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between sm:justify-start gap-2">
+              <span className="text-muted-foreground">Status do Efetivo:</span>
+              <span className={`font-bold font-mono ${stats.totalAllocatedStaff === contractLimitStaff ? "text-emerald-600" : "text-amber-600"}`}>
+                {stats.totalAllocatedStaff} / {contractLimitStaff} vagas
+              </span>
+            </div>
+          </div>
+
+          {/* Atalhos rápidos de cidades do RS */}
+          <div className="mt-2 flex flex-wrap items-center gap-1.5 pt-1">
+            <span className="text-[11px] font-medium text-muted-foreground mr-1">
+              Atalhos RS:
+            </span>
+            {POPULAR_RS_CITIES.slice(0, 8).map((city) => (
+              <button
+                key={city}
+                type="button"
+                onClick={() => {
+                  const emptyCity = cities.find((c) => !c.name || c.name.startsWith("Cidade "));
+                  if (emptyCity) {
+                    handleUpdateCityName(emptyCity.id, city);
+                  } else if (stats.remainingPosts > 0) {
+                    handleAddCity();
+                    setTimeout(() => {
+                      setCities((prev) => {
+                        const last = prev[prev.length - 1];
+                        return prev.map((c) => (c.id === last?.id ? { ...c, name: city } : c));
+                      });
+                    }, 50);
+                  } else {
+                    toast.info(`Para usar ${city}, selecione-a no campo da cidade.`);
+                  }
+                }}
+                className="px-2 py-0.5 text-[11px] rounded bg-muted hover:bg-primary/10 hover:text-primary transition-colors border border-border/60"
+              >
+                + {city}
+              </button>
+            ))}
+          </div>
         </CardHeader>
+
         <CardContent>
-          <div className="rounded-lg border bg-background overflow-hidden">
+          <div className="rounded-lg border bg-background overflow-hidden shadow-sm">
             <Table>
               <TableHeader className="bg-muted/60">
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="w-12 text-center text-xs font-mono font-bold">#</TableHead>
-                  <TableHead className="text-xs font-bold">Nome da Cidade de Atuação</TableHead>
-                  <TableHead className="w-64 text-center text-xs font-bold">
+                  {/* Coluna de cidade alargada e com seletor padronizado */}
+                  <TableHead className="min-w-[360px] text-xs font-bold">
+                    Cidade de Atuação no Rio Grande do Sul (Seleção Padronizada)
+                  </TableHead>
+                  <TableHead className="w-72 text-center text-xs font-bold">
                     Qtd. de Postos Previstos nesta Cidade
                   </TableHead>
-                  <TableHead className="w-48 text-center text-xs font-bold">Postos Configurados</TableHead>
                   <TableHead className="w-24 text-center text-xs font-bold">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {cities.map((city, idx) => {
-                  const configuredCount = city.posts.length;
-                  const targetCount = city.targetQty;
-                  const isMatched = configuredCount >= targetCount;
-
                   return (
                     <TableRow key={city.id} className="hover:bg-muted/20">
                       {/* # Index */}
@@ -823,49 +1072,52 @@ export function PostosHierarquicos() {
                         {idx + 1}
                       </TableCell>
 
-                      {/* Nome da Cidade */}
-                      <TableCell>
-                        <Input
-                          value={city.name}
-                          onChange={(e) => handleUpdateCityName(city.id, e.target.value)}
-                          placeholder="Ex: Erechim, Triunfo, Florianópolis..."
-                          className="h-9 font-medium text-sm border-transparent hover:border-input focus:border-ring transition-colors"
-                        />
+                      {/* Nome da Cidade de Atuação (RS) - ALARGADO COM SELEÇÃO PADRONIZADA */}
+                      <TableCell className="py-2">
+                        <div className="relative flex items-center gap-2">
+                          <Input
+                            list="rs-cities-datalist"
+                            value={city.name}
+                            onChange={(e) => handleUpdateCityName(city.id, e.target.value)}
+                            onBlur={(e) => {
+                              // Normalização automática se coincidir case-insensitive com cidade do RS
+                              const matched = RS_CITIES.find(
+                                (rs) => rs.toLowerCase() === e.target.value.trim().toLowerCase()
+                              );
+                              if (matched && matched !== e.target.value) {
+                                handleUpdateCityName(city.id, matched);
+                              }
+                            }}
+                            placeholder="Selecione ou digite a cidade do RS (ex: Erechim, Triunfo...)"
+                            className="h-10 font-medium text-sm border-input focus:border-ring w-full bg-background"
+                          />
+                          <Badge variant="outline" className="text-[10px] font-mono shrink-0 px-2 py-1">
+                            RS
+                          </Badge>
+                        </div>
                       </TableCell>
 
-                      {/* Postos Previstos */}
-                      <TableCell className="text-center">
+                      {/* Postos Previstos na Cidade */}
+                      <TableCell className="text-center py-2">
                         <div className="flex items-center justify-center gap-2">
                           <Input
                             type="number"
                             min={1}
-                            max={100}
+                            max={contractLimitPosts}
                             value={city.targetQty}
                             onChange={(e) =>
                               handleUpdateCityTargetQty(city.id, parseInt(e.target.value, 10))
                             }
                             className="w-24 h-9 text-center font-bold text-sm bg-muted/20 border-input"
                           />
-                          <span className="text-xs text-muted-foreground">postos</span>
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">
+                            postos (máx: {contractLimitPosts})
+                          </span>
                         </div>
                       </TableCell>
 
-                      {/* Status / Configurados */}
-                      <TableCell className="text-center">
-                        <Badge
-                          variant={isMatched ? "secondary" : "outline"}
-                          className={`font-mono text-xs ${
-                            isMatched
-                              ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-300"
-                              : "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-300"
-                          }`}
-                        >
-                          {configuredCount} de {targetCount} linhas
-                        </Badge>
-                      </TableCell>
-
                       {/* Ações */}
-                      <TableCell className="text-center">
+                      <TableCell className="text-center py-2">
                         <Button
                           type="button"
                           variant="ghost"
@@ -896,10 +1148,10 @@ export function PostosHierarquicos() {
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
                   3
                 </span>
-                Postos de Trabalho por Cidade (Grade Estilo Planilha)
+                Postos de Trabalho Distribuídos por Cidade (Grade Estilo Planilha)
               </CardTitle>
               <CardDescription>
-                Edição rápida de locais e funções em grade contínua. Digite e navegue com <code>Tab</code> ou <code>Enter</code>.
+                Edição contínua dos locais e funções. O total de linhas e efetivo não pode ultrapassar o contratado ({contractLimitPosts} postos / {contractLimitStaff} vagas).
               </CardDescription>
             </div>
 
@@ -914,7 +1166,7 @@ export function PostosHierarquicos() {
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                🏢 Todas as Cidades ({stats.totalPosts})
+                🏢 Todas as Cidades ({stats.totalActualPosts})
               </button>
 
               {cities.map((city) => (
@@ -952,7 +1204,7 @@ export function PostosHierarquicos() {
                       Cidade: {city.name || "Não informada"}
                     </span>
                     <Badge variant="secondary" className="font-mono text-xs">
-                      {city.posts.length} postos cadastrados
+                      {city.posts.length} postos cadastrados (meta: {city.targetQty})
                     </Badge>
                   </div>
 
@@ -962,8 +1214,10 @@ export function PostosHierarquicos() {
                       type="button"
                       variant="outline"
                       size="sm"
+                      disabled={stats.totalActualPosts >= contractLimitPosts}
                       onClick={() => handleAddPostToCity(city.id)}
                       className="h-7 text-xs gap-1"
+                      title={stats.totalActualPosts >= contractLimitPosts ? "Limite do contrato atingido" : ""}
                     >
                       <Plus className="h-3 w-3" />
                       Adicionar Posto
@@ -972,8 +1226,10 @@ export function PostosHierarquicos() {
                       type="button"
                       variant="outline"
                       size="sm"
+                      disabled={stats.totalActualPosts >= contractLimitPosts}
                       onClick={() => handleAddMultiplePostsToCity(city.id, 5)}
                       className="h-7 text-xs gap-1 text-muted-foreground"
+                      title={stats.totalActualPosts >= contractLimitPosts ? "Limite do contrato atingido" : ""}
                     >
                       <Layers className="h-3 w-3" />
                       +5 Linhas
@@ -1059,12 +1315,12 @@ export function PostosHierarquicos() {
                             </div>
                           </TableCell>
 
-                          {/* Quantidade Exigida */}
+                          {/* Quantidade Exigida (Efetivo do Posto) */}
                           <TableCell className="p-1 text-center">
                             <Input
                               type="number"
                               min={1}
-                              max={50}
+                              max={contractLimitStaff}
                               value={post.required_qty}
                               onChange={(e) =>
                                 handleUpdatePost(
@@ -1107,6 +1363,7 @@ export function PostosHierarquicos() {
                                 className="h-7 w-7 text-muted-foreground hover:text-foreground"
                                 onClick={() => handleDuplicatePost(city.id, post.tempId)}
                                 title="Duplicar Posto"
+                                disabled={stats.totalActualPosts >= contractLimitPosts}
                               >
                                 <Copy className="h-3.5 w-3.5" />
                               </Button>
@@ -1143,15 +1400,28 @@ export function PostosHierarquicos() {
               {stats.totalCities} {stats.totalCities === 1 ? "Cidade" : "Cidades"}
             </span>
             <span className="text-muted-foreground">•</span>
-            <span className="font-semibold text-foreground flex items-center gap-1.5">
+            <span
+              className={`font-semibold flex items-center gap-1.5 ${
+                stats.totalActualPosts === contractLimitPosts ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"
+              }`}
+            >
               <MapPin className="h-4 w-4 text-primary" />
-              {stats.totalPosts} {stats.totalPosts === 1 ? "Posto de Trabalho" : "Postos de Trabalho"}
+              {stats.totalActualPosts} / {contractLimitPosts} Postos de Trabalho
             </span>
             <span className="text-muted-foreground">•</span>
-            <span className="font-medium text-muted-foreground flex items-center gap-1.5">
+            <span
+              className={`font-medium flex items-center gap-1.5 ${
+                stats.totalAllocatedStaff === contractLimitStaff ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"
+              }`}
+            >
               <Users className="h-4 w-4" />
-              {stats.totalRequiredStaff} Vagas Totais
+              {stats.totalAllocatedStaff} / {contractLimitStaff} Vagas Totais
             </span>
+            {stats.isExactMatch && (
+              <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-300 text-xs">
+                Distribuição Completa (100%)
+              </Badge>
+            )}
             {hasChanges && (
               <span className="text-xs text-amber-600 dark:text-amber-400 font-medium bg-amber-500/10 px-2 py-0.5 rounded">
                 ● Alterações não salvas
@@ -1176,7 +1446,7 @@ export function PostosHierarquicos() {
               type="button"
               variant="default"
               size="default"
-              disabled={isSaving || !selectedContractId}
+              disabled={isSaving || !selectedContractId || stats.isExceeded}
               onClick={handleSaveAll}
               className="font-bold text-sm px-6 gap-2 bg-primary text-primary-foreground shadow-md hover:bg-primary/90"
             >

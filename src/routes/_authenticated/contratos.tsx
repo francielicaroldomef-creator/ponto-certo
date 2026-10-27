@@ -23,9 +23,14 @@ function Contratos() {
   const supOpts = (profiles ?? []).map((p) => ({ value: p.id, label: p.full_name ?? p.email ?? p.id }));
   return (
     <CrudPage title="Contratos" table="contracts" order="code" search={(r) => `${r.code} ${r.name} ${r.client}`}
-      description="Supervisores só visualizam contratos em que são responsáveis."
-      defaults={{ active: true, discount_rule: "hora", required_headcount: 0 }}
-      transform={(v) => ({ ...v, active: v["active"] === "true" || v["active"] === true })}
+      description="Supervisores só visualizam contratos em que são responsáveis. Postos e efetivo definidos aqui limitam a distribuição nas cidades."
+      defaults={{ active: true, discount_rule: "hora", required_headcount: 30, required_posts: 30 }}
+      transform={(v) => ({
+        ...v,
+        active: v["active"] === "true" || v["active"] === true,
+        required_posts: Number(v["required_posts"] || v["required_headcount"] || 30),
+        required_headcount: Number(v["required_headcount"] || 30),
+      })}
       fields={[
         { key: "code", label: "Código", required: true, half: true },
         { key: "name", label: "Nome", required: true, half: true },
@@ -34,7 +39,8 @@ function Contratos() {
         { key: "end_date", label: "Fim da vigência", type: "date", half: true },
         { key: "supervisor_id", label: "Supervisor responsável (usuário)", type: "select", options: supOpts },
         { key: "supervisor_name", label: "Nome do supervisor (exibição)" },
-        { key: "required_headcount", label: "Efetivo exigido", type: "number", half: true },
+        { key: "required_posts", label: "Quantidade de postos contratados", type: "number", half: true },
+        { key: "required_headcount", label: "Efetivo exigido (pessoas)", type: "number", half: true },
         { key: "discount_rule", label: "Regra de desconto", type: "select", half: true, options: [{ value: "hora", label: "Por hora" }, { value: "diaria", label: "Por diária" }, { value: "turno", label: "Por turno" }] },
         { key: "active", label: "Situação", type: "select", options: [{ value: "true", label: "Ativo" }, { value: "false", label: "Inativo" }] },
       ]}
@@ -44,7 +50,8 @@ function Contratos() {
         { header: "Cliente", cell: (r) => r.client },
         { header: "Vigência", cell: (r) => `${fmtDate(r.start_date)} a ${fmtDate(r.end_date)}` },
         { header: "Supervisor", cell: (r) => r.supervisor_name ?? "—" },
-        { header: "Efetivo", cell: (r) => r.required_headcount },
+        { header: "Postos", cell: (r) => <span className="font-semibold text-foreground">{r.required_posts ?? r.required_headcount ?? 30}</span> },
+        { header: "Efetivo", cell: (r) => <span className="font-semibold text-foreground">{r.required_headcount ?? 30}</span> },
         { header: "Regra", cell: (r) => r.discount_rule },
         { header: "Situação", cell: (r) => <Pill tone={r.active ? "success" : "neutral"}>{r.active ? "Ativo" : "Inativo"}</Pill> },
       ]} />

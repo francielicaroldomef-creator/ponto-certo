@@ -14,12 +14,15 @@ describe("📋 FLUXO HIERÁRQUICO DE POSTOS EM GRADE ESTILO EXCEL (/postos)", ()
     expect(postosContent).toContain("Seleção do Contrato de Atuação");
   });
 
-  it("2. Grade de Cidades permite definir quantidade e cadastrar nomes (ex: Erechim, Triunfo)", () => {
+  it("2. Grade de Cidades padronizada para o Rio Grande do Sul e sem coluna 'Postos Configurados'", () => {
     expect(postosContent).toContain("Quantas cidades este contrato atende?");
-    expect(postosContent).toContain("Cidades Atendidas pelo Contrato (Grade Excel)");
-    expect(postosContent).toContain("Nome da Cidade de Atuação");
+    expect(postosContent).toContain("Cidades de Atuação no Rio Grande do Sul (Grade Excel)");
+    expect(postosContent).toContain("Cidade de Atuação no Rio Grande do Sul");
     expect(postosContent).toContain("Qtd. de Postos Previstos nesta Cidade");
     expect(postosContent).toContain("Adicionar Cidade");
+    expect(postosContent).toContain("rs-cities-datalist");
+    // Garante que a coluna 'Postos Configurados' foi removida conforme especificação
+    expect(postosContent).not.toContain("Postos Configurados");
   });
 
   it("3. Grade de Postos por Cidade estilo Excel possui colunas operacionais e navegação por teclado", () => {
@@ -126,5 +129,24 @@ describe("📋 FLUXO HIERÁRQUICO DE POSTOS EM GRADE ESTILO EXCEL (/postos)", ()
     expect(migrationSql).toContain("code = 'CT-001'");
     expect(migrationSql).toContain("'P01','P02','P03'");
     expect(migrationSql).toContain("'P30'");
+  });
+
+  it("8. Respeita limites estritos do contrato (postos e efetivo) bloqueando excessos", () => {
+    // Valida que postos.tsx possui as travas contratuais
+    expect(postosContent).toContain("contractLimitPosts");
+    expect(postosContent).toContain("contractLimitStaff");
+    expect(postosContent).toContain("não é permitido cadastrar mais de");
+    expect(postosContent).toContain("O efetivo total não pode exceder");
+    expect(postosContent).toContain("Saldo a Distribuir");
+  });
+
+  it("9. Migração 0006_contracts_required_posts.sql adiciona required_posts na tabela contracts", () => {
+    const migrationPath = path.resolve(__dirname, "../../drizzle/migrations/0006_contracts_required_posts.sql");
+    expect(fs.existsSync(migrationPath)).toBe(true);
+
+    const sql = fs.readFileSync(migrationPath, "utf-8");
+    expect(sql).toContain("ALTER TABLE public.contracts");
+    expect(sql).toContain("ADD COLUMN IF NOT EXISTS required_posts int");
+    expect(sql).toContain("code = 'CT-001'");
   });
 });
