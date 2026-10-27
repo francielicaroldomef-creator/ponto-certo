@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Field } from "@/components/ui-kit";
 
+import { QuickAccessDialog, useTripleClick } from "@/components/quick-access-dialog";
+
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
@@ -27,6 +29,8 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [quickOpen, setQuickOpen] = useState(false);
+  const handleTripleClick = useTripleClick(() => setQuickOpen(true), 1200);
   const navigate = useNavigate();
 
   const submit = async (e: React.FormEvent) => {
@@ -56,8 +60,12 @@ function AuthPage() {
     <div className="grid min-h-screen place-items-center bg-sidebar p-4">
       <Card className="w-full max-w-sm">
         <CardContent className="p-6">
-          <div className="mb-6 flex items-center gap-2">
-            <div className="grid h-9 w-9 place-items-center rounded-md bg-primary font-bold text-primary-foreground">PS</div>
+          <div
+            className="mb-6 flex items-center gap-2 cursor-pointer select-none transition-opacity active:opacity-75"
+            onClick={handleTripleClick}
+            title="Portal do Supervisor"
+          >
+            <div className="grid h-9 w-9 place-items-center rounded-md bg-primary font-bold text-primary-foreground shadow-sm">PS</div>
             <div>
               <p className="font-semibold">Portal do Supervisor</p>
               <p className="text-xs text-muted-foreground">{mode === "in" ? "Entre com sua conta" : "Crie sua conta"}</p>
@@ -75,6 +83,7 @@ function AuthPage() {
           <p className="mt-4 text-xs text-muted-foreground">O primeiro usuário cadastrado torna-se Administrador. Os demais aguardam atribuição de perfil.</p>
         </CardContent>
       </Card>
+      <QuickAccessDialog open={quickOpen} onOpenChange={setQuickOpen} />
     </div>
   );
 }
