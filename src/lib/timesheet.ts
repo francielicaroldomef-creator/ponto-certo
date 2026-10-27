@@ -45,7 +45,7 @@ export function parseTimesheet(pages: string[][], fallbackYear: number): Extract
     for (const line of lines) {
       const r = line.match(/matr[íi]cula\s*[:\-]?\s*([A-Za-z0-9\-]+)/i);
       if (r) reg = r[1] ?? null;
-      const n = line.match(/(?:nome|funcion[áa]rio)\s*[:\-]\s*([A-Za-zÀ-ÿ' ]{3,}?)(?=\s{2,}|\s+matr|\s+cargo|$)/i);
+      const n = line.match(/(?:nome|funcion[áa]rio)\s*[:\-]\s*([A-Za-zÀ-ÿ0-9' ]{3,}?)(?=\s{2,}|\s+matr|\s+cargo|$)/i);
       if (n) name = n[1]?.trim() ?? null;
       const d = line.match(/\b(\d{2})\/(\d{2})(?:\/(\d{2,4}))?\b/);
       if (!d) continue;
