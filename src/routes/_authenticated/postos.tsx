@@ -11,6 +11,16 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   Building2,
@@ -31,6 +41,8 @@ import {
   RefreshCw,
   ShieldCheck,
   AlertTriangle,
+  ChevronsUpDown,
+  X,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/postos")({
@@ -66,21 +78,112 @@ const COMMON_ROLES = [
   "Recepcionista",
 ];
 
-// Principais cidades do RS para sugestão rápida com 1 clique
-const POPULAR_RS_CITIES = [
-  "Erechim",
-  "Triunfo",
-  "Porto Alegre",
-  "Caxias do Sul",
-  "Passo Fundo",
-  "Pelotas",
-  "Santa Maria",
-  "Canoas",
-  "Bento Gonçalves",
-  "Novo Hamburgo",
-  "Lajeado",
-  "Santa Cruz do Sul",
-];
+interface RSCityComboboxProps {
+  value: string;
+  onChange: (city: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
+}
+
+export function RSCityCombobox({
+  value,
+  onChange,
+  placeholder = "Selecione o município do RS...",
+  disabled = false,
+}: RSCityComboboxProps) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const filteredCities = useMemo(() => {
+    if (!search.trim()) return RS_CITIES;
+    const term = search
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+    return RS_CITIES.filter((city) => {
+      const normalizedCity = city
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+      return normalizedCity.includes(term);
+    });
+  }, [search]);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          disabled={disabled}
+          className={cn(
+            "w-full justify-between h-10 font-normal text-left px-3 border-input bg-background hover:bg-muted/30 transition-colors",
+            !value && "text-muted-foreground"
+          )}
+        >
+          <div className="flex items-center gap-2 truncate">
+            <MapPin className="h-4 w-4 shrink-0 text-primary" />
+            {value ? (
+              <span className="font-semibold text-foreground truncate">{value}</span>
+            ) : (
+              <span className="truncate text-muted-foreground">{placeholder}</span>
+            )}
+          </div>
+          <div className="flex items-center gap-1 shrink-0 ml-2">
+            {value && (
+              <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0 border-primary/30 text-primary bg-primary/5">
+                RS
+              </Badge>
+            )}
+            <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
+          </div>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[380px] p-0 shadow-lg border-border" align="start">
+        <Command shouldFilter={false} className="max-h-[340px]">
+          <CommandInput
+            placeholder="Buscar entre os 497 municípios do RS..."
+            value={search}
+            onValueChange={setSearch}
+            className="h-10"
+          />
+          <CommandList className="max-h-[280px] overflow-y-auto">
+            {filteredCities.length === 0 ? (
+              <CommandEmpty className="py-6 text-center text-sm text-muted-foreground">
+                Nenhum município encontrado com "{search}".
+              </CommandEmpty>
+            ) : (
+              <CommandGroup heading={`497 Municípios Oficiais do RS (${filteredCities.length})`}>
+                {filteredCities.map((city) => {
+                  const isSelected = value.toLowerCase() === city.toLowerCase();
+                  return (
+                    <CommandItem
+                      key={city}
+                      value={city}
+                      onSelect={() => {
+                        onChange(city);
+                        setOpen(false);
+                        setSearch("");
+                      }}
+                      className="cursor-pointer flex items-center justify-between py-2 text-sm"
+                    >
+                      <span className={isSelected ? "font-bold text-primary" : "text-foreground"}>
+                        {city}
+                      </span>
+                      {isSelected && <Check className="h-4 w-4 text-primary shrink-0" />}
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            )}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 function generateCode(cityName: string, index: number, existingCodes: Set<string>): string {
   const prefix = cityName.trim()
@@ -340,13 +443,13 @@ export function PostosHierarquicos() {
               break;
             }
 
-            const defaultName = POPULAR_RS_CITIES[i % POPULAR_RS_CITIES.length] || `Cidade ${i + 1}`;
-            const code = generateCode(defaultName, 0, existingCodes);
+            const defaultName = "";
+            const code = generateCode(defaultName, i, existingCodes);
             existingCodes.add(code);
 
             added.push({
               id: `city-${Date.now()}-${i}`,
-              name: defaultName,
+              name: "",
               targetQty: 1,
               posts: [
                 {
@@ -393,15 +496,15 @@ export function PostosHierarquicos() {
       }
 
       const idx = prev.length + 1;
-      const defaultName = POPULAR_RS_CITIES[(idx - 1) % POPULAR_RS_CITIES.length] || `Cidade ${idx}`;
+      const defaultName = "";
       const existingCodes = new Set(prev.flatMap((c) => c.posts.map((p) => p.code)));
-      const code = generateCode(defaultName, 0, existingCodes);
+      const code = generateCode(defaultName, idx - 1, existingCodes);
 
       return [
         ...prev,
         {
           id: `city-${Date.now()}-${idx}`,
-          name: defaultName,
+          name: "",
           targetQty: 1,
           posts: [
             {
@@ -725,10 +828,10 @@ export function PostosHierarquicos() {
       return;
     }
 
-    // Validate that cities have names
+    // Validate that cities have names and belong to official 497 RS municipalities
     for (let i = 0; i < cities.length; i++) {
-      if (!cities[i].name.trim()) {
-        toast.error(`Informe ou selecione a cidade do Rio Grande do Sul na linha #${i + 1}.`);
+      if (!cities[i].name.trim() || !isRSCity(cities[i].name.trim())) {
+        toast.error(`Selecione um município oficial do RS na linha #${i + 1} entre os 497 disponíveis.`);
         return;
       }
     }
@@ -956,7 +1059,7 @@ export function PostosHierarquicos() {
                 Cidades de Atuação no Rio Grande do Sul (Grade Excel)
               </CardTitle>
               <CardDescription>
-                Selecione as cidades padronizadas do RS e distribua os <strong>{contractLimitPosts} postos</strong> sem ultrapassar o limite do contrato.
+                Selecione individualmente entre os <strong>497 municípios do RS</strong> e distribua os <strong>{contractLimitPosts} postos</strong> sem pré-seleção forçada e respeitando os limites contratuais.
               </CardDescription>
             </div>
 
@@ -1013,38 +1116,6 @@ export function PostosHierarquicos() {
               </span>
             </div>
           </div>
-
-          {/* Atalhos rápidos de cidades do RS */}
-          <div className="mt-2 flex flex-wrap items-center gap-1.5 pt-1">
-            <span className="text-[11px] font-medium text-muted-foreground mr-1">
-              Atalhos RS:
-            </span>
-            {POPULAR_RS_CITIES.slice(0, 8).map((city) => (
-              <button
-                key={city}
-                type="button"
-                onClick={() => {
-                  const emptyCity = cities.find((c) => !c.name || c.name.startsWith("Cidade "));
-                  if (emptyCity) {
-                    handleUpdateCityName(emptyCity.id, city);
-                  } else if (stats.remainingPosts > 0) {
-                    handleAddCity();
-                    setTimeout(() => {
-                      setCities((prev) => {
-                        const last = prev[prev.length - 1];
-                        return prev.map((c) => (c.id === last?.id ? { ...c, name: city } : c));
-                      });
-                    }, 50);
-                  } else {
-                    toast.info(`Para usar ${city}, selecione-a no campo da cidade.`);
-                  }
-                }}
-                className="px-2 py-0.5 text-[11px] rounded bg-muted hover:bg-primary/10 hover:text-primary transition-colors border border-border/60"
-              >
-                + {city}
-              </button>
-            ))}
-          </div>
         </CardHeader>
 
         <CardContent>
@@ -1053,9 +1124,9 @@ export function PostosHierarquicos() {
               <TableHeader className="bg-muted/60">
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="w-12 text-center text-xs font-mono font-bold">#</TableHead>
-                  {/* Coluna de cidade alargada e com seletor padronizado */}
-                  <TableHead className="min-w-[360px] text-xs font-bold">
-                    Cidade de Atuação no Rio Grande do Sul (Seleção Padronizada)
+                  {/* Coluna de cidade alargada e com seletor individual padronizado dos 497 municípios */}
+                  <TableHead className="min-w-[380px] text-xs font-bold">
+                    Cidade de Atuação no Rio Grande do Sul (497 Municípios Oficiais)
                   </TableHead>
                   <TableHead className="w-72 text-center text-xs font-bold">
                     Qtd. de Postos Previstos nesta Cidade
@@ -1072,28 +1143,28 @@ export function PostosHierarquicos() {
                         {idx + 1}
                       </TableCell>
 
-                      {/* Nome da Cidade de Atuação (RS) - ALARGADO COM SELEÇÃO PADRONIZADA */}
+                      {/* Nome da Cidade de Atuação (RS) - ALARGADO COM SELEÇÃO INDIVIDUAL DOS 497 MUNICÍPIOS */}
                       <TableCell className="py-2">
-                        <div className="relative flex items-center gap-2">
-                          <Input
-                            list="rs-cities-datalist"
-                            value={city.name}
-                            onChange={(e) => handleUpdateCityName(city.id, e.target.value)}
-                            onBlur={(e) => {
-                              // Normalização automática se coincidir case-insensitive com cidade do RS
-                              const matched = RS_CITIES.find(
-                                (rs) => rs.toLowerCase() === e.target.value.trim().toLowerCase()
-                              );
-                              if (matched && matched !== e.target.value) {
-                                handleUpdateCityName(city.id, matched);
-                              }
-                            }}
-                            placeholder="Selecione ou digite a cidade do RS (ex: Erechim, Triunfo...)"
-                            className="h-10 font-medium text-sm border-input focus:border-ring w-full bg-background"
-                          />
-                          <Badge variant="outline" className="text-[10px] font-mono shrink-0 px-2 py-1">
-                            RS
-                          </Badge>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1">
+                            <RSCityCombobox
+                              value={city.name}
+                              onChange={(selected) => handleUpdateCityName(city.id, selected)}
+                              placeholder="Selecione o município do RS (497 opções)..."
+                            />
+                          </div>
+                          {city.name && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+                              onClick={() => handleUpdateCityName(city.id, "")}
+                              title="Limpar seleção para escolher outro município"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
 

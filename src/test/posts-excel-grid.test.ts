@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
 import { upsertContractPostsBatch, type BatchPostInput } from "@/lib/data";
+import { RS_CITIES, isRSCity } from "@/lib/rs-cities";
 
 describe("📋 FLUXO HIERÁRQUICO DE POSTOS EM GRADE ESTILO EXCEL (/postos)", () => {
   const postosFilePath = path.resolve(__dirname, "../routes/_authenticated/postos.tsx");
@@ -23,6 +24,10 @@ describe("📋 FLUXO HIERÁRQUICO DE POSTOS EM GRADE ESTILO EXCEL (/postos)", ()
     expect(postosContent).toContain("rs-cities-datalist");
     // Garante que a coluna 'Postos Configurados' foi removida conforme especificação
     expect(postosContent).not.toContain("Postos Configurados");
+    // Garante que os atalhos foram removidos e o seletor individual RSCityCombobox está presente
+    expect(postosContent).not.toContain("Atalhos RS:");
+    expect(postosContent).not.toContain("POPULAR_RS_CITIES");
+    expect(postosContent).toContain("RSCityCombobox");
   });
 
   it("3. Grade de Postos por Cidade estilo Excel possui colunas operacionais e navegação por teclado", () => {
@@ -148,5 +153,32 @@ describe("📋 FLUXO HIERÁRQUICO DE POSTOS EM GRADE ESTILO EXCEL (/postos)", ()
     expect(sql).toContain("ALTER TABLE public.contracts");
     expect(sql).toContain("ADD COLUMN IF NOT EXISTS required_posts int");
     expect(sql).toContain("code = 'CT-001'");
+  });
+
+  it("10. Lista oficial contém exatamente os 497 municípios do RS com seleção individual sem pré-seleção", () => {
+    // 497 municípios oficiais do IBGE para o Estado do Rio Grande do Sul
+    expect(RS_CITIES.length).toBe(497);
+
+    // Sem duplicações
+    const uniqueCities = new Set(RS_CITIES);
+    expect(uniqueCities.size).toBe(497);
+
+    // Validação de municípios chave
+    expect(isRSCity("Porto Alegre")).toBe(true);
+    expect(isRSCity("Erechim")).toBe(true);
+    expect(isRSCity("Triunfo")).toBe(true);
+    expect(isRSCity("Caxias do Sul")).toBe(true);
+    expect(isRSCity("Passo Fundo")).toBe(true);
+    expect(isRSCity("Pelotas")).toBe(true);
+    expect(isRSCity("Santa Maria")).toBe(true);
+    expect(isRSCity("Jacuizinho")).toBe(true);
+    expect(isRSCity("Passa Sete")).toBe(true);
+    expect(isRSCity("Unistalda")).toBe(true);
+    expect(isRSCity("Cidade Fictícia Inexistente")).toBe(false);
+
+    // postos.tsx deve instruir seleção individual entre os 497 municípios sem pré-seleção forçada
+    expect(postosContent).toContain("497 municípios");
+    expect(postosContent).toContain("sem pré-seleção forçada");
+    expect(postosContent).toContain("placeholder=\"Selecione o município do RS (497 opções)...\"");
   });
 });

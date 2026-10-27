@@ -1,5 +1,5 @@
 /**
- * Lista padronizada de cidades do Estado do Rio Grande do Sul (RS).
+ * Lista oficial padronizada dos 497 municípios do Estado do Rio Grande do Sul (IBGE/RS).
  * Garante cadastros consistentes sem variações de grafia, maiúsculas ou abreviações.
  */
 export const RS_CITIES: string[] = [
@@ -138,8 +138,8 @@ export const RS_CITIES: string[] = [
   "Dois Irmãos das Missões",
   "Dois Lajeados",
   "Dom Feliciano",
-  "Dom Pedro de Alcântara",
   "Dom Pedrito",
+  "Dom Pedro de Alcântara",
   "Dona Francisca",
   "Doutor Maurício Cardoso",
   "Doutor Ricardo",
@@ -152,7 +152,6 @@ export const RS_CITIES: string[] = [
   "Erebango",
   "Erechim",
   "Ernestina",
-  "Herval",
   "Erval Grande",
   "Erval Seco",
   "Esmeralda",
@@ -194,6 +193,7 @@ export const RS_CITIES: string[] = [
   "Guaporé",
   "Guarani das Missões",
   "Harmonia",
+  "Herval",
   "Herveiras",
   "Horizontina",
   "Hulha Negra",
@@ -222,6 +222,7 @@ export const RS_CITIES: string[] = [
   "Ivorá",
   "Ivoti",
   "Jaboticaba",
+  "Jacuizinho",
   "Jacutinga",
   "Jaguarão",
   "Jaguari",
@@ -304,6 +305,7 @@ export const RS_CITIES: string[] = [
   "Paraíso do Sul",
   "Pareci Novo",
   "Parobé",
+  "Passa Sete",
   "Passo do Sobrado",
   "Passo Fundo",
   "Paulo Bento",
@@ -361,6 +363,7 @@ export const RS_CITIES: string[] = [
   "Salvador das Missões",
   "Salvador do Sul",
   "Sananduva",
+  "Sant'Ana do Livramento",
   "Santa Bárbara do Sul",
   "Santa Cecília do Sul",
   "Santa Clara do Sul",
@@ -372,7 +375,6 @@ export const RS_CITIES: string[] = [
   "Santa Tereza",
   "Santa Vitória do Palmar",
   "Santana da Boa Vista",
-  "Sant'Ana do Livramento",
   "Santiago",
   "Santo Ângelo",
   "Santo Antônio da Patrulha",
@@ -473,6 +475,7 @@ export const RS_CITIES: string[] = [
   "Turuçu",
   "Ubiretama",
   "União da Serra",
+  "Unistalda",
   "Uruguaiana",
   "Vacaria",
   "Vale do Sol",
