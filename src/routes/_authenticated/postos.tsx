@@ -27,6 +27,7 @@ import {
   AlertCircle,
   Briefcase,
   Users,
+  RefreshCw,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/postos")({
@@ -162,30 +163,86 @@ export function PostosHierarquicos() {
       setHasChanges(false);
       setActiveCityTab("all");
     } else if (rawPosts && rawPosts.length === 0) {
-      // Default initial state: 1 city, 1 post
-      const initialCityName = selectedContract?.city || "Cidade Principal";
-      const initialPost: PostGridItem = {
-        tempId: `temp-${Date.now()}-1`,
-        code: "P01",
-        workplace: "",
-        role_name: "Servente de Limpeza",
-        required_qty: 1,
-        active: true,
-      };
+      // Default initial state: For CT-001 (PGE), load all 30 official posts (P01 a P30)
+      const initialCityName = selectedContract?.city || "Florianópolis";
+      const officialCount =
+        selectedContract?.required_headcount && selectedContract.required_headcount > 0
+          ? selectedContract.required_headcount
+          : selectedContract?.code === "CT-001"
+          ? 30
+          : 1;
+
+      const generatedPosts: PostGridItem[] = [];
+      for (let i = 0; i < officialCount; i++) {
+        generatedPosts.push({
+          tempId: `temp-${Date.now()}-${i + 1}`,
+          code: `P${String(i + 1).padStart(2, "0")}`,
+          workplace: selectedContract?.code === "CT-001" ? "Escola Serafim" : "",
+          role_name: "Servente de Limpeza",
+          required_qty: 1,
+          active: true,
+        });
+      }
 
       setCities([
         {
           id: `city-1`,
           name: initialCityName,
-          targetQty: 1,
-          posts: [initialPost],
+          targetQty: officialCount,
+          posts: generatedPosts,
         },
       ]);
       setDeletedPostIds([]);
       setHasChanges(false);
       setActiveCityTab("all");
     }
-  }, [rawPosts, selectedContractId, selectedContract?.city]);
+  }, [rawPosts, selectedContractId, selectedContract?.city, selectedContract?.code, selectedContract?.required_headcount]);
+
+  // Enforce/Reset to the 30 official posts (P01 a P30)
+  const handleRestore30Posts = useCallback(() => {
+    const cityName = selectedContract?.city || "Florianópolis";
+    const officialPosts: PostGridItem[] = [];
+    const removedIds: string[] = [];
+
+    // Track any post IDs beyond 30 to remove from DB on save
+    if (rawPosts) {
+      for (const p of rawPosts) {
+        const num = parseInt(p.code.replace(/\D/g, ""), 10);
+        if (num > 30 || !p.code.startsWith("P")) {
+          removedIds.push(p.id);
+        }
+      }
+    }
+
+    for (let i = 1; i <= 30; i++) {
+      const code = `P${String(i).padStart(2, "0")}`;
+      const existing = rawPosts?.find((p) => p.code === code);
+      officialPosts.push({
+        tempId: existing?.id || `temp-${Date.now()}-${i}`,
+        id: existing?.id,
+        code,
+        workplace: existing?.workplace || "Escola Serafim",
+        role_name: existing?.role_name || "Servente de Limpeza",
+        required_qty: 1,
+        active: true,
+      });
+    }
+
+    setCities([
+      {
+        id: "city-1",
+        name: cityName,
+        targetQty: 30,
+        posts: officialPosts,
+      },
+    ]);
+    if (removedIds.length > 0) {
+      setDeletedPostIds((prev) => [...prev, ...removedIds]);
+    }
+    setHasChanges(true);
+    setActiveCityTab("all");
+    toast.info("Ajustado para os 30 postos oficiais (P01 a P30). Clique em 'Salvar Cidades e Postos' para sincronizar.");
+  }, [rawPosts, selectedContract?.city]);
 
   // Overall Statistics
   const stats = useMemo(() => {
@@ -660,7 +717,7 @@ export function PostosHierarquicos() {
             </div>
 
             {selectedContract && (
-              <div className="rounded-lg border bg-muted/40 p-2.5 text-xs space-y-1">
+              <div className="rounded-lg border bg-muted/40 p-2.5 text-xs space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Cliente:</span>
                   <span className="font-medium text-foreground">{selectedContract.client || "—"}</span>
@@ -671,6 +728,25 @@ export function PostosHierarquicos() {
                     {selectedContract.city || cities[0]?.name || "Não definida"}
                   </span>
                 </div>
+                <div className="flex items-center justify-between border-t pt-1">
+                  <span className="text-muted-foreground">Efetivo Oficial:</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                    {selectedContract.required_headcount || 30} Postos
+                  </span>
+                </div>
+                {selectedContract.code === "CT-001" && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRestore30Posts}
+                    className="w-full mt-1 h-7 text-[11px] gap-1.5 font-semibold text-primary hover:bg-primary/10 border-primary/30"
+                    title="Restaura a grade para os 30 postos oficiais (P01 a P30) do contrato PGE"
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                    Restaurar 30 Postos Oficiais (P01 a P30)
+                  </Button>
+                )}
               </div>
             )}
           </div>

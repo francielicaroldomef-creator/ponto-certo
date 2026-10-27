@@ -109,4 +109,22 @@ describe("📋 FLUXO HIERÁRQUICO DE POSTOS EM GRADE ESTILO EXCEL (/postos)", ()
     expect(mappedRows[1].code).toBe("TRI-01");
     expect(mappedRows[1].required_qty).toBe(2);
   });
+
+  it("7. Contrato PGE (CT-001) possui exatamente 30 postos oficiais (P01 a P30) e não 45", () => {
+    // Valida que postos.tsx possui a inicialização oficial para 30 postos e o botão de restauração
+    expect(postosContent).toContain("Restaurar 30 Postos Oficiais (P01 a P30)");
+    expect(postosContent).toContain("handleRestore30Posts");
+    expect(postosContent).toContain('selectedContract?.code === "CT-001"');
+    expect(postosContent).toContain("selectedContract.required_headcount || 30");
+
+    // Valida que a migração 0005_enforce_30_posts_pge.sql existe e reforça 30 postos
+    const migrationPath = path.resolve(__dirname, "../../drizzle/migrations/0005_enforce_30_posts_pge.sql");
+    expect(fs.existsSync(migrationPath)).toBe(true);
+
+    const migrationSql = fs.readFileSync(migrationPath, "utf-8");
+    expect(migrationSql).toContain("required_headcount = 30");
+    expect(migrationSql).toContain("code = 'CT-001'");
+    expect(migrationSql).toContain("'P01','P02','P03'");
+    expect(migrationSql).toContain("'P30'");
+  });
 });
