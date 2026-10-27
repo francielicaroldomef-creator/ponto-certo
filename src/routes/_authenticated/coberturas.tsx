@@ -1,11 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { loadPeriod, errMsg, type DayRow } from "@/lib/data";
-import { validateTreatmentConflict } from "@/lib/treatment-conflicts";
+import {
+  getTreatmentConflicts,
+  replaceTreatmentConflicts,
+  suggestNextFreeInterval,
+  type ConflictingRecordInfo,
+} from "@/lib/treatment-conflicts";
 import { COV_LABEL, brl, brlValue, fmtDate, hhmm, hours } from "@/lib/format";
 import { useDefaultPeriod } from "@/hooks/use-period";
 import { coverageIntervals, minToHHMM, suggestCoverageCents, total } from "@/lib/calc";
@@ -15,6 +20,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { ShiftTimeline } from "@/components/shift-timeline";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -86,15 +102,38 @@ function NewCoverage({ contract, rows, onClose, onSaved }: { contract: string; r
   const need = needs.find((r) => r.schedule.id === needId);
   const [type, setType] = useState<"diarista" | "funcionario">("diarista");
   const [person, setPerson] = useState("");
-  const first = need?.result.uncoveredIntervals[0];
-  const [start, setStart] = useState(first ? minToHHMM(first[0]) : "08:00");
-  const last = need?.result.uncoveredIntervals.at(-1);
-  const [end, setEnd] = useState(last ? minToHHMM(last[1]) : "17:00");
+
+  const suggestion = useMemo(() => {
+    if (!need) return null;
+    return suggestNextFreeInterval(need.schedule, need.attendance, need.coverages, need.treatments);
+  }, [need]);
+
+  const [start, setStart] = useState("08:00");
+  const [end, setEnd] = useState("17:00");
   const [bs, setBs] = useState("12:00");
   const [be, setBe] = useState("13:00");
   const [value, setValue] = useState("");
   const [status, setStatus] = useState("realizada");
   const [busy, setBusy] = useState(false);
+  const [conflictDialog, setConflictDialog] = useState<{ open: boolean; conflicts: ConflictingRecordInfo[]; execute: () => Promise<void> } | null>(null);
+
+  // Auto-fill times when selecting an occurrence
+  useEffect(() => {
+    if (suggestion) {
+      setStart(suggestion.start);
+      setEnd(suggestion.end);
+      if (need?.schedule.break_start) setBs(need.schedule.break_start.slice(0, 5));
+      if (need?.schedule.break_end) setBe(need.schedule.break_end.slice(0, 5));
+    }
+  }, [needId]);
+
+  const applySuggestion = () => {
+    if (suggestion) {
+      setStart(suggestion.start);
+      setEnd(suggestion.end);
+      toast.info(`Horário sugerido preenchido: ${suggestion.start}–${suggestion.end}`);
+    }
+  };
 
   const { data: dws } = useQuery({ queryKey: ["dws-active"], queryFn: async () => (await supabase.from("day_workers").select("*").eq("status", "ativo").order("code")).data ?? [] });
   const { data: emps } = useQuery({ queryKey: ["emps-active"], queryFn: async () => (await supabase.from("employees").select("id, registration, name").eq("status", "ativo").order("registration")).data ?? [] });
@@ -104,11 +143,8 @@ function NewCoverage({ contract, rows, onClose, onSaved }: { contract: string; r
   const dw = dws?.find((d: any) => d.id === person);
   const suggested = useMemo(() => (type === "diarista" && dw ? suggestCoverageCents(minutes, need?.result.requiredMin ?? 480, dw.day_rate, dw.hour_rate) : 0), [type, dw, minutes, need]);
 
-  const save = async (): Promise<any> => {
-    if (!need || !person) return toast.error("Selecione a ocorrência e a pessoa.");
-    setBusy(true);
-    try {
-    if (need.attendance) await validateTreatmentConflict(need.schedule, need.attendance, { start_time: start, end_time: end, break_start: useBreak ? bs : null, break_end: useBreak ? be : null, status }, true);
+  const executeInsert = async () => {
+    if (!need) return;
     const { error } = await supabase.from("coverages").insert({
       contract_id: contract, post_id: need.schedule.post_id, attendance_id: need.attendance?.id ?? null, work_date: need.schedule.work_date,
       coverer_type: type, day_worker_id: type === "diarista" ? person : null, employee_id: type === "funcionario" ? person : null,
@@ -116,8 +152,55 @@ function NewCoverage({ contract, rows, onClose, onSaved }: { contract: string; r
       agreed_value: value !== "" ? Number(value.replace(",", ".")) : suggested / 100, status,
     });
     if (error) throw error;
-    toast.success("Cobertura registrada."); onSaved();
-    } catch (e) { toast.error(errMsg(e)); } finally { setBusy(false); }
+  };
+
+  const save = async (): Promise<any> => {
+    if (!need || !person) return toast.error("Selecione a ocorrência e a pessoa.");
+    if (!start || !end || end <= start || minutes <= 0) return toast.error("Informe um período válido dentro da jornada.");
+    setBusy(true);
+    try {
+      if (need.attendance) {
+        const candidate = {
+          start_time: start,
+          end_time: end,
+          break_start: useBreak ? bs : null,
+          break_end: useBreak ? be : null,
+          status,
+          coverer_type: type,
+        };
+        const { conflicts } = await getTreatmentConflicts(need.schedule, need.attendance, candidate, true);
+
+        if (conflicts.length > 0) {
+          setConflictDialog({
+            open: true,
+            conflicts,
+            execute: async () => {
+              setBusy(true);
+              try {
+                await replaceTreatmentConflicts(conflicts);
+                await executeInsert();
+                toast.success("Tratamento anterior substituído e cobertura registrada com sucesso.");
+                onSaved();
+              } catch (err) {
+                toast.error(errMsg(err));
+              } finally {
+                setBusy(false);
+                setConflictDialog(null);
+              }
+            },
+          });
+          return;
+        }
+      }
+
+      await executeInsert();
+      toast.success("Cobertura registrada.");
+      onSaved();
+    } catch (e) {
+      toast.error(errMsg(e));
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -131,6 +214,23 @@ function NewCoverage({ contract, rows, onClose, onSaved }: { contract: string; r
               <SelectContent>{needs.map((r) => <SelectItem key={r.schedule.id} value={r.schedule.id}>{fmtDate(r.schedule.work_date)} · {r.post?.code} · {r.employee?.registration} · {hours(r.result.uncoveredMin)} descob.</SelectItem>)}</SelectContent>
             </Select>
           </Field>
+
+          {/* Visual shift timeline */}
+          {need && (
+            <ShiftTimeline
+              schedule={need.schedule}
+              attendance={need.attendance}
+              coverages={need.coverages}
+              treatments={need.treatments}
+            />
+          )}
+
+          {suggestion?.fullyCovered && (
+            <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 p-2 text-xs text-emerald-800 dark:text-emerald-200 font-medium">
+              ✓ Esta ocorrência já está 100% coberta/tratada. Se salvar neste horário, poderá substituir o registro anterior.
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-3">
             <Field label="Tipo">
               <Select value={type} onValueChange={(v) => { setType(v as any); setPerson(""); }}>
@@ -145,6 +245,16 @@ function NewCoverage({ contract, rows, onClose, onSaved }: { contract: string; r
               </Select>
             </Field>
           </div>
+
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>Período da cobertura</span>
+            {suggestion && suggestion.pendingMinutes > 0 && (start !== suggestion.start || end !== suggestion.end) && (
+              <Button size="sm" variant="ghost" className="h-6 px-1.5 text-xs text-primary" onClick={applySuggestion}>
+                <Sparkles className="mr-1 h-3.5 w-3.5" /> Preencher livre ({suggestion.start}–{suggestion.end})
+              </Button>
+            )}
+          </div>
+
           <div className="grid grid-cols-4 gap-2">
             <Field label="Início"><Input type="time" value={start} onChange={(e) => setStart(e.target.value)} /></Field>
             <Field label="Fim"><Input type="time" value={end} onChange={(e) => setEnd(e.target.value)} /></Field>
@@ -164,9 +274,29 @@ function NewCoverage({ contract, rows, onClose, onSaved }: { contract: string; r
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={save} disabled={busy}>Salvar</Button>
+          <Button onClick={save} disabled={busy}>{busy ? "Salvando…" : "Salvar"}</Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* 1-Click Conflict Replacement Confirmation Modal */}
+      <AlertDialog open={!!conflictDialog?.open} onOpenChange={(o) => !o && setConflictDialog(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Substituir tratamento conflitante?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span>Já existe um tratamento registrado para este período que sobrepõe a nova cobertura:</span>
+              <span className="mt-2 block rounded-md bg-muted p-2 font-medium text-foreground">
+                {conflictDialog?.conflicts.map((c) => `• ${c.label} (${c.start_time.slice(0, 5)}–${c.end_time.slice(0, 5)})`).join("\n")}
+              </span>
+              <span>Deseja substituir pelo novo? O registro anterior será inativado/cancelado no histórico e a nova cobertura será salva.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setConflictDialog(null)}>Não, ajustar horários</AlertDialogCancel>
+            <AlertDialogAction onClick={() => conflictDialog?.execute()}>Sim, substituir agora</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
