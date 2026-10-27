@@ -259,8 +259,58 @@ export async function upsertContractPostsBatch(
     hour_value: 0,
   }));
 
+  // Save metadata to localStorage first as safety backup
+  try {
+    if (typeof window !== "undefined" && window.localStorage) {
+      const cityMap: Record<string, string> = {};
+      const workplaceMap: Record<string, string> = {};
+      posts.forEach((p) => {
+        if (p.code) {
+          cityMap[p.code.trim()] = p.city?.trim() || "";
+          workplaceMap[p.code.trim()] = p.workplace?.trim() || "";
+        }
+      });
+      localStorage.setItem(`posts_meta_cities_${contractId}`, JSON.stringify(cityMap));
+      localStorage.setItem(`posts_meta_workplaces_${contractId}`, JSON.stringify(workplaceMap));
+    }
+  } catch (_) {}
+
+  // 1. Tentar salvar com as colunas completas (workplace e city)
   const { error } = await supabase.from("posts").upsert(rows, { onConflict: "contract_id,code" });
-  if (error) throw error;
+
+  if (error) {
+    const errorMsg = (error.message || "").toLowerCase();
+    const isColumnMissing =
+      errorMsg.includes("city") ||
+      errorMsg.includes("workplace") ||
+      errorMsg.includes("schema cache") ||
+      error.code === "42703" ||
+      error.code === "PGRST204";
+
+    if (isColumnMissing) {
+      console.warn(
+        "[upsertContractPostsBatch] Schema cache do Supabase ainda sem colunas city/workplace. Realizando fallback seguro:",
+        error.message
+      );
+
+      // Fallback: remove city e workplace do payload da tabela posts (ficam salvos em localStorage e contracts)
+      const fallbackRows = rows.map((r) => {
+        const copy: any = { ...r };
+        delete copy.city;
+        delete copy.workplace;
+        return copy;
+      });
+
+      const { error: retryError } = await supabase.from("posts").upsert(fallbackRows, {
+        onConflict: "contract_id,code",
+      });
+
+      if (retryError) throw retryError;
+      return { count: fallbackRows.length };
+    }
+
+    throw error;
+  }
 
   return { count: rows.length };
 }

@@ -265,16 +265,40 @@ export function PostosHierarquicos() {
     if (!selectedContractId) return;
 
     if (rawPosts && rawPosts.length > 0) {
-      // Group loaded posts by city
+      // Group loaded posts by city (with localStorage backup support)
+      let localCityMap: Record<string, string> = {};
+      let localWorkplaceMap: Record<string, string> = {};
+      try {
+        if (typeof window !== "undefined" && window.localStorage) {
+          localCityMap = JSON.parse(
+            localStorage.getItem(`posts_meta_cities_${selectedContractId}`) || "{}"
+          );
+          localWorkplaceMap = JSON.parse(
+            localStorage.getItem(`posts_meta_workplaces_${selectedContractId}`) || "{}"
+          );
+        }
+      } catch (_) {}
+
       const cityMap = new Map<string, PostGridItem[]>();
 
       for (const p of rawPosts) {
-        const cityName = (p.city || selectedContract?.city || "Erechim").trim();
+        const cityName = (
+          p.city ||
+          localCityMap[p.code] ||
+          selectedContract?.city ||
+          "Erechim"
+        ).trim();
+        const workplaceName = (
+          p.workplace ||
+          localWorkplaceMap[p.code] ||
+          (selectedContract?.code === "CT-001" ? "Escola Serafim" : "")
+        ).trim();
+
         const item: PostGridItem = {
           tempId: p.id,
           id: p.id,
           code: p.code || "",
-          workplace: p.workplace || "",
+          workplace: workplaceName,
           role_name: p.role_name || "Servente de Limpeza",
           required_qty: p.required_qty && p.required_qty > 0 ? p.required_qty : 1,
           active: p.active !== false,
@@ -872,10 +896,14 @@ export function PostosHierarquicos() {
 
       // Sincronizar cidade principal no contrato se aplicável
       if (cities[0]?.name) {
-        await supabase
-          .from("contracts")
-          .update({ city: cities[0].name.trim() })
-          .eq("id", selectedContractId);
+        try {
+          await supabase
+            .from("contracts")
+            .update({ city: cities[0].name.trim() })
+            .eq("id", selectedContractId);
+        } catch (contractCityErr) {
+          console.warn("[Postos] Aviso ao atualizar cidade no contrato:", contractCityErr);
+        }
       }
 
       // Invalidate queries so all other screens update instantly
