@@ -1,5 +1,18 @@
+/**
+ * auth.tsx — Login Corporativo Caroldo
+ *
+ * Layout fiel ao pacote caroldo-login-frontend:
+ *   • Desktop: palco 1672×941 com `referencia-desktop.png` como arte-base +
+ *              card interativo posicionado em pixel-perfect (left:949 top:186)
+ *   • Mobile:  reflow vertical com anéis orgânicos + `logo-caroldo.png`
+ *
+ * CSS idêntico ao styles.css do pacote — apenas adaptado para <style> inline
+ * (sem classe global para não vazar ao resto do app).
+ * Autenticação real via Supabase; clique-triplo → QuickAccessDialog.
+ */
+
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { QuickAccessDialog, useTripleClick } from "@/components/quick-access-dialog";
@@ -7,197 +20,221 @@ import { QuickAccessDialog, useTripleClick } from "@/components/quick-access-dia
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Portal Caroldo — Entrar" },
-      { name: "description", content: "Acesso corporativo ao sistema integrado de gestão Caroldo." },
-      { property: "og:title", content: "Portal Caroldo — Entrar" },
-      { property: "og:description", content: "Sistema integrado de gestão da Caroldo." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
+      { title: "Caroldo | Acesso ao sistema de gestão" },
+      { name: "description", content: "Sistema integrado de gestão da Caroldo. Acesso corporativo seguro." },
+      { name: "theme-color", content: "#0b0b0d" },
     ],
   }),
   component: AuthPage,
 });
 
 // ---------------------------------------------------------------------------
-// SVG Icons (inline, sem dependência de biblioteca)
+// SVG inline idênticos ao pacote original
 // ---------------------------------------------------------------------------
-function IconEnvelope() {
+function SvgEnvelope() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="4" width="20" height="16" rx="3" />
-      <polyline points="2,4 12,13 22,4" />
+    <svg className="cl-field-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="2.5" y="5" width="19" height="14" rx="2" />
+      <path d="m3 7 9 7 9-7" />
     </svg>
   );
 }
-
-function IconLock() {
+function SvgLock() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="5" y="11" width="14" height="10" rx="2" />
-      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+    <svg className="cl-field-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="5" y="10" width="14" height="11" rx="2" />
+      <path d="M8 10V7a4 4 0 0 1 8 0v3" />
     </svg>
   );
 }
-
-function IconEye({ off }: { off?: boolean }) {
-  if (off) {
-    return (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-        <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-        <line x1="1" y1="1" x2="23" y2="23" />
-      </svg>
-    );
-  }
+function SvgEyeToggle({ visible }: { visible: boolean }) {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="cl-eye-svg">
+      <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6Z" />
       <circle cx="12" cy="12" r="3" />
+      {!visible && <path d="m3 21 18-18" />}
     </svg>
   );
 }
-
-function IconArrow() {
+function SvgArrow() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="5" y1="12" x2="19" y2="12" />
-      <polyline points="12,5 19,12 12,19" />
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="cl-cta-arrow">
+      <path d="M4 12h16m-6-6 6 6-6 6" />
     </svg>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Logo Caroldo SVG — emblema circular fiel ao original
+// Formulário — compartilhado entre desktop e mobile
 // ---------------------------------------------------------------------------
-function CaroldoEmblem({ size = 120 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 120 120"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      style={{ flexShrink: 0 }}
-    >
-      {/* Anel laranja externo */}
-      <circle cx="60" cy="60" r="58" fill="url(#logoGrad)" />
-      {/* Anel preto separador */}
-      <circle cx="60" cy="60" r="53" fill="#000" />
-      {/* Fundo laranja interior */}
-      <circle cx="60" cy="60" r="48" fill="url(#logoGrad2)" />
-
-      {/* Texto superior em arco */}
-      <defs>
-        <linearGradient id="logoGrad" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#FF7020" />
-          <stop offset="100%" stopColor="#CC3300" />
-        </linearGradient>
-        <linearGradient id="logoGrad2" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#FF6010" />
-          <stop offset="100%" stopColor="#C03000" />
-        </linearGradient>
-        <path id="arcTop" d="M 17,60 A 43,43 0 0 1 103,60" />
-        <path id="arcBot" d="M 22,70 A 38,38 0 0 0 98,70" />
-      </defs>
-      {/* Arco superior */}
-      <text fontSize="7.2" fontFamily="Arial Black, sans-serif" fontWeight="900" fill="#000" letterSpacing="0.5">
-        <textPath href="#arcTop" startOffset="50%" textAnchor="middle">
-          CAROLDO PRESTAÇÃO DE SERVIÇOS LTDA
-        </textPath>
-      </text>
-      {/* Grande C cursivo branco */}
-      <text
-        x="60" y="74"
-        textAnchor="middle"
-        fontSize="62"
-        fontFamily="Georgia, serif"
-        fontStyle="italic"
-        fontWeight="900"
-        fill="white"
-        opacity="0.95"
-      >C</text>
-      {/* Sobreposição "Caroldo" */}
-      <text
-        x="60" y="82"
-        textAnchor="middle"
-        fontSize="10.5"
-        fontFamily="Arial Black, sans-serif"
-        fontWeight="900"
-        fontStyle="italic"
-        fill="#000"
-        letterSpacing="-0.2"
-      >Caroldo</text>
-      {/* Arco inferior */}
-      <text fontSize="7.5" fontFamily="Arial Black, sans-serif" fontWeight="900" fill="white" letterSpacing="1.5">
-        <textPath href="#arcBot" startOffset="50%" textAnchor="middle">
-          TRIUNFO · RS
-        </textPath>
-      </text>
-    </svg>
-  );
+interface LoginFormProps {
+  emailId: string;
+  passwordId: string;
+  busy: boolean;
+  onSubmit: (email: string, password: string, remember: boolean) => Promise<void>;
+  onForgot: (email: string) => void;
 }
 
-// ---------------------------------------------------------------------------
-// Hook: escala proporcional 1672×941 → viewport
-// ---------------------------------------------------------------------------
-function useSceneScale() {
-  const [scale, setScale] = useState(1);
-  useEffect(() => {
-    function compute() {
-      const s = Math.min(window.innerWidth / 1672, window.innerHeight / 941);
-      setScale(Math.min(s, 1)); // nunca ampliar além de 100%
-    }
-    compute();
-    window.addEventListener("resize", compute);
-    return () => window.removeEventListener("resize", compute);
-  }, []);
-  return scale;
-}
-
-// ---------------------------------------------------------------------------
-// Formulário de autenticação — compartilhado entre desktop e mobile
-// ---------------------------------------------------------------------------
-interface AuthFormProps {
-  onTripleClick: () => void;
-  isMobile?: boolean;
-}
-
-function AuthForm({ onTripleClick, isMobile = false }: AuthFormProps) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPwd, setShowPwd] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const navigate = useNavigate();
+function LoginForm({ emailId, passwordId, busy, onSubmit, onForgot }: LoginFormProps) {
+  const [email, setEmail]         = useState("");
+  const [password, setPassword]   = useState("");
+  const [remember, setRemember]   = useState(false);
+  const [showPwd, setShowPwd]     = useState(false);
+  const [emailErr, setEmailErr]   = useState("");
+  const [pwdErr, setPwdErr]       = useState("");
+  const emailRef                  = useRef<HTMLInputElement>(null);
+  const pwdRef                    = useRef<HTMLInputElement>(null);
 
   // Recupera e-mail memorizado
   useEffect(() => {
     try {
       const saved = localStorage.getItem("caroldo_remember_email");
-      if (saved) { setEmail(saved); setRememberMe(true); }
-    } catch (_) { }
+      if (saved) { setEmail(saved); setRemember(true); }
+    } catch (_) {}
   }, []);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  function validateEmail(v: string) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    let valid = true;
+    if (!validateEmail(email.trim())) { setEmailErr("Informe um e-mail válido."); valid = false; } else setEmailErr("");
+    if (!password) { setPwdErr("Informe sua senha."); valid = false; } else setPwdErr("");
+    if (!valid) {
+      (emailErr ? emailRef : pwdRef).current?.focus();
+      return;
+    }
+    await onSubmit(email.trim(), password, remember);
+  }
+
+  return (
+    <form className="cl-login-form" onSubmit={handleSubmit} noValidate>
+      {/* E-mail */}
+      <div className={`cl-field-group${emailErr ? " cl-has-error" : ""}`}>
+        <label htmlFor={emailId}>E-mail corporativo</label>
+        <div className="cl-field-shell">
+          <SvgEnvelope />
+          <input
+            ref={emailRef}
+            id={emailId}
+            name="email"
+            type="email"
+            autoComplete="username"
+            inputMode="email"
+            placeholder="seuemail@caroldo.com.br"
+            spellCheck={false}
+            required
+            value={email}
+            aria-invalid={emailErr ? "true" : "false"}
+            onChange={(e) => { setEmail(e.target.value); setEmailErr(""); }}
+          />
+        </div>
+        <p className="cl-field-error" aria-live="polite">{emailErr}</p>
+      </div>
+
+      {/* Senha */}
+      <div className={`cl-field-group cl-password-group${pwdErr ? " cl-has-error" : ""}`}>
+        <label htmlFor={passwordId}>Senha</label>
+        <div className="cl-field-shell">
+          <SvgLock />
+          <input
+            ref={pwdRef}
+            id={passwordId}
+            name="password"
+            type={showPwd ? "text" : "password"}
+            autoComplete="current-password"
+            placeholder="Digite sua senha"
+            required
+            minLength={1}
+            value={password}
+            aria-invalid={pwdErr ? "true" : "false"}
+            onChange={(e) => { setPassword(e.target.value); setPwdErr(""); }}
+          />
+          <button
+            type="button"
+            className="cl-reveal"
+            aria-label={showPwd ? "Ocultar senha" : "Mostrar senha"}
+            aria-pressed={showPwd}
+            onClick={() => { setShowPwd((v) => !v); pwdRef.current?.focus(); }}
+          >
+            <SvgEyeToggle visible={showPwd} />
+          </button>
+        </div>
+        <p className="cl-field-error" aria-live="polite">{pwdErr}</p>
+      </div>
+
+      {/* Lembrar + Esqueci */}
+      <div className="cl-actions-row">
+        <label className="cl-remember">
+          <input
+            type="checkbox"
+            name="remember"
+            checked={remember}
+            onChange={(e) => setRemember(e.target.checked)}
+          />
+          <span>Lembrar meu e-mail</span>
+        </label>
+        <button
+          type="button"
+          className="cl-forgot"
+          onClick={() => onForgot(email.trim())}
+        >
+          Esqueci minha senha
+        </button>
+      </div>
+
+      {/* CTA */}
+      <button type="submit" className="cl-submit-button" disabled={busy}>
+        <span>{busy ? "Validando credenciais…" : "Entrar na plataforma"}</span>
+        {!busy && <SvgArrow />}
+      </button>
+    </form>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Página principal
+// ---------------------------------------------------------------------------
+function AuthPage() {
+  const [busy, setBusy]           = useState(false);
+  const [quickOpen, setQuickOpen] = useState(false);
+  const navigate = useNavigate();
+
+  // Escala proporcional 1672×941
+  useEffect(() => {
+    const stage = document.getElementById("cl-desktop-stage");
+    function scale() {
+      const s = Math.min(window.innerWidth / 1672, window.innerHeight / 941);
+      stage?.style.setProperty("--scene-scale", String(s));
+    }
+    scale();
+    window.addEventListener("resize", scale, { passive: true });
+    return () => window.removeEventListener("resize", scale);
+  }, []);
+
+  const handleTripleClick = useTripleClick(() => setQuickOpen(true), 1200);
+
+  async function handleLogin(email: string, password: string, remember: boolean) {
     setBusy(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       try {
-        if (rememberMe) localStorage.setItem("caroldo_remember_email", email);
-        else localStorage.removeItem("caroldo_remember_email");
-      } catch (_) { }
+        if (remember) localStorage.setItem("caroldo_remember_email", email);
+        else          localStorage.removeItem("caroldo_remember_email");
+      } catch (_) {}
       toast.success("Bem-vindo de volta!");
       navigate({ to: "/painel" });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Falha na autenticação. Verifique os dados.");
+      toast.error(err instanceof Error ? err.message : "E-mail ou senha inválidos.");
     } finally {
       setBusy(false);
     }
-  };
+  }
 
-  const handleForgotPassword = () => {
+  function handleForgot(email: string) {
     if (!email) { toast.info("Digite seu e-mail corporativo no campo acima primeiro."); return; }
     toast.promise(
       supabase.auth.resetPasswordForEmail(email, {
@@ -206,642 +243,395 @@ function AuthForm({ onTripleClick, isMobile = false }: AuthFormProps) {
       {
         loading: "Enviando e-mail de recuperação...",
         success: "Link de recuperação enviado!",
-        error: "Não foi possível enviar o e-mail de recuperação.",
+        error:   "Não foi possível enviar o e-mail de recuperação.",
       },
     );
-  };
-
-  // Estilos dos campos
-  const fieldShell: React.CSSProperties = {
-    position: "relative",
-    height: "60px",
-    borderRadius: "14px",
-    border: "1px solid #6c6261",
-    background: "linear-gradient(100deg, #232124ed, #222224e3)",
-    display: "flex",
-    alignItems: "center",
-    transition: "border-color 0.15s, box-shadow 0.15s",
-  };
-
-  const inputBase: React.CSSProperties = {
-    flex: 1,
-    height: "100%",
-    background: "transparent",
-    border: "none",
-    outline: "none",
-    color: "#fff",
-    fontSize: "15px",
-    fontFamily: "Montserrat, sans-serif",
-    paddingLeft: "48px",
-    paddingRight: "44px",
-  };
-
-  const iconSlot: React.CSSProperties = {
-    position: "absolute",
-    left: "16px",
-    color: "#a09090",
-    display: "flex",
-    alignItems: "center",
-    pointerEvents: "none",
-  };
-
-  function focusShell(el: HTMLDivElement | null) {
-    if (!el) return;
-    el.style.borderColor = "#ff8d43";
-    el.style.boxShadow = "0 0 0 3px #ff760026";
   }
-  function blurShell(el: HTMLDivElement | null) {
-    if (!el) return;
-    el.style.borderColor = "#6c6261";
-    el.style.boxShadow = "none";
-  }
-
-  const emailShellRef = useRef<HTMLDivElement>(null);
-  const pwdShellRef = useRef<HTMLDivElement>(null);
-
-  return (
-    <div style={{ width: "100%", color: "#fff", fontFamily: "Montserrat, sans-serif" }}>
-      {/* Título do card */}
-      <h2
-        style={{
-          fontSize: isMobile ? "22px" : "24px",
-          fontWeight: 800,
-          lineHeight: 1.3,
-          marginBottom: "28px",
-          color: "#fff",
-        }}
-      >
-        Comece seu dia com{" "}
-        <span style={{ color: "#ff8d43" }}>fé, trabalho e compromisso.</span>
-      </h2>
-
-      <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-
-        {/* E-mail */}
-        <div>
-          <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#ccc", marginBottom: "8px" }}>
-            E-mail corporativo
-          </label>
-          <div
-            ref={emailShellRef}
-            style={fieldShell}
-          >
-            <span style={iconSlot}><IconEnvelope /></span>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-              placeholder="seuemail@caroldo.com.br"
-              style={{ ...inputBase, paddingLeft: "50px" }}
-              onFocus={() => focusShell(emailShellRef.current)}
-              onBlur={() => blurShell(emailShellRef.current)}
-            />
-          </div>
-        </div>
-
-        {/* Senha */}
-        <div>
-          <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#ccc", marginBottom: "8px" }}>
-            Senha
-          </label>
-          <div
-            ref={pwdShellRef}
-            style={fieldShell}
-          >
-            <span style={iconSlot}><IconLock /></span>
-            <input
-              type={showPwd ? "text" : "password"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-              autoComplete="current-password"
-              placeholder="••••••••••"
-              style={{ ...inputBase, paddingRight: "52px" }}
-              onFocus={() => focusShell(pwdShellRef.current)}
-              onBlur={() => blurShell(pwdShellRef.current)}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPwd((v) => !v)}
-              tabIndex={-1}
-              aria-label={showPwd ? "Ocultar senha" : "Mostrar senha"}
-              style={{
-                position: "absolute",
-                right: "14px",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                color: "#a09090",
-                display: "flex",
-                alignItems: "center",
-                padding: "4px",
-                borderRadius: "6px",
-                transition: "color 0.15s",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "#fff")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "#a09090")}
-            >
-              <IconEye off={showPwd} />
-            </button>
-          </div>
-        </div>
-
-        {/* Lembrar + Esqueci */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "13px" }}>
-          <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", color: "#d0cece", userSelect: "none" }}>
-            <input
-              type="checkbox"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-              style={{ accentColor: "#ff6b00", width: "16px", height: "16px", cursor: "pointer" }}
-            />
-            Lembrar meu e-mail
-          </label>
-          <button
-            type="button"
-            onClick={handleForgotPassword}
-            style={{
-              background: "none", border: "none", cursor: "pointer",
-              color: "#a09090", fontSize: "13px", fontFamily: "Montserrat, sans-serif",
-              textDecoration: "none", padding: 0, transition: "color 0.15s",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.textDecoration = "underline"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = "#a09090"; e.currentTarget.style.textDecoration = "none"; }}
-          >
-            Esqueci minha senha
-          </button>
-        </div>
-
-        {/* CTA */}
-        <button
-          type="submit"
-          disabled={busy}
-          style={{
-            height: "69px",
-            borderRadius: "26px",
-            border: "none",
-            cursor: busy ? "not-allowed" : "pointer",
-            background: busy
-              ? "linear-gradient(100deg, #994400 0%, #772200 100%)"
-              : "linear-gradient(100deg, #ff8b00 0%, #ff5700 57%, #ff4e09 100%)",
-            boxShadow: busy ? "none" : "0 10px 27px #fa560052, inset 0 1px 0 #ffb26d60",
-            color: "#fff",
-            fontSize: "19px",
-            fontWeight: 700,
-            fontFamily: "Montserrat, sans-serif",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "10px",
-            opacity: busy ? 0.75 : 1,
-            transition: "background 0.15s, box-shadow 0.15s, transform 0.1s",
-            marginTop: "6px",
-            letterSpacing: "-0.2px",
-          }}
-          onMouseEnter={(e) => {
-            if (!busy) {
-              e.currentTarget.style.background = "linear-gradient(100deg, #ff9800 0%, #ff6200 57%, #ff5500 100%)";
-              e.currentTarget.style.boxShadow = "0 14px 36px #fa560075, inset 0 1px 0 #ffb26d60";
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!busy) {
-              e.currentTarget.style.background = "linear-gradient(100deg, #ff8b00 0%, #ff5700 57%, #ff4e09 100%)";
-              e.currentTarget.style.boxShadow = "0 10px 27px #fa560052, inset 0 1px 0 #ffb26d60";
-            }
-          }}
-          onMouseDown={(e) => { if (!busy) e.currentTarget.style.transform = "scale(0.98)"; }}
-          onMouseUp={(e) => { if (!busy) e.currentTarget.style.transform = "scale(1)"; }}
-        >
-          <span>{busy ? "Entrando..." : "Entrar na plataforma"}</span>
-          {!busy && <IconArrow />}
-        </button>
-      </form>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Cena Desktop — palco 1672×941 com imagem de referência + card posicionado
-// ---------------------------------------------------------------------------
-function DesktopScene({ scale, onTripleClick }: { scale: number; onTripleClick: () => void }) {
-  return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        overflow: "hidden",
-        background: "#08090C",
-      }}
-    >
-      {/* Palco escalável */}
-      <div
-        style={{
-          position: "relative",
-          width: "1672px",
-          height: "941px",
-          transformOrigin: "center center",
-          transform: `scale(${scale})`,
-          flexShrink: 0,
-        }}
-      >
-        {/* ── Fundo principal: composição 3D com iluminação laranja ── */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background: [
-              "radial-gradient(ellipse 900px 600px at 70% 50%, rgba(180,60,0,0.28) 0%, transparent 65%)",
-              "radial-gradient(ellipse 600px 800px at 85% 20%, rgba(255,100,0,0.18) 0%, transparent 60%)",
-              "radial-gradient(ellipse 700px 400px at 50% 95%, rgba(255,85,0,0.13) 0%, transparent 70%)",
-              "linear-gradient(160deg, #0c0e12 0%, #0a0b0e 40%, #130d08 100%)",
-            ].join(", "),
-          }}
-        />
-
-        {/* Anéis curvos 3D — coluna central/direita */}
-        {/* Anel grande diagonal laranja (superior) */}
-        <div
-          style={{
-            position: "absolute",
-            top: "-180px",
-            right: "280px",
-            width: "780px",
-            height: "780px",
-            borderRadius: "50%",
-            border: "78px solid transparent",
-            background: "transparent",
-            boxShadow: "0 0 0 0px transparent",
-            backgroundImage: "none",
-            borderColor: "transparent",
-            outline: "none",
-            // Anel real via box-shadow e clip
-            boxSizing: "border-box",
-          }}
-        >
-          <div style={{
-            position: "absolute",
-            inset: 0,
-            borderRadius: "50%",
-            border: "78px solid",
-            borderColor: "rgba(200,65,0,0.75)",
-            transform: "rotate(-18deg) scaleX(0.72)",
-            filter: "blur(0.5px)",
-            boxShadow: "0 0 60px rgba(255,85,0,0.35), inset 0 0 40px rgba(255,85,0,0.12)",
-          }} />
-        </div>
-        {/* Anel médio laranja escuro (atrás do principal) */}
-        <div style={{
-          position: "absolute",
-          top: "60px",
-          right: "120px",
-          width: "640px",
-          height: "640px",
-          borderRadius: "50%",
-          border: "58px solid rgba(140,40,0,0.55)",
-          transform: "rotate(10deg) scaleX(0.65)",
-          filter: "blur(1px)",
-          boxShadow: "inset 0 0 30px rgba(255,80,0,0.10)",
-        }} />
-        {/* Anel pequeno laranja brilhante (primeiro plano) */}
-        <div style={{
-          position: "absolute",
-          top: "220px",
-          right: "200px",
-          width: "460px",
-          height: "460px",
-          borderRadius: "50%",
-          border: "48px solid rgba(255,80,0,0.60)",
-          transform: "rotate(-30deg) scaleX(0.58) scaleY(1.1)",
-          filter: "blur(0.3px)",
-          boxShadow: "0 0 80px rgba(255,85,0,0.40), inset 0 0 20px rgba(255,100,0,0.10)",
-        }} />
-        {/* Anel escuro traseiro (profundidade) */}
-        <div style={{
-          position: "absolute",
-          top: "-80px",
-          right: "500px",
-          width: "860px",
-          height: "860px",
-          borderRadius: "50%",
-          border: "70px solid rgba(50,20,5,0.45)",
-          transform: "rotate(5deg) scaleX(0.8)",
-          filter: "blur(2px)",
-        }} />
-
-        {/* Reflexo de piso laranja */}
-        <div style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: "180px",
-          background: "linear-gradient(to top, rgba(255,70,0,0.12), rgba(255,70,0,0.04), transparent)",
-        }} />
-        <div style={{
-          position: "absolute",
-          bottom: "40px",
-          left: "10%",
-          right: "10%",
-          height: "1px",
-          background: "linear-gradient(to right, transparent, rgba(255,85,0,0.65), transparent)",
-          filter: "blur(1px)",
-        }} />
-
-        {/* Glow difuso esquerdo (área de branding) */}
-        <div style={{
-          position: "absolute",
-          top: "50%",
-          left: "60px",
-          transform: "translateY(-50%)",
-          width: "500px",
-          height: "500px",
-          borderRadius: "50%",
-          background: "radial-gradient(ellipse, rgba(255,85,0,0.07) 0%, transparent 70%)",
-          filter: "blur(8px)",
-        }} />
-
-        {/* ── Coluna esquerda: branding ── */}
-        <div
-          style={{
-            position: "absolute",
-            left: "92px",
-            top: "50%",
-            transform: "translateY(-50%)",
-            display: "flex",
-            flexDirection: "column",
-            gap: "32px",
-          }}
-        >
-          {/* Logo com clique triplo */}
-          <div
-            onClick={onTripleClick}
-            title="Portal Caroldo — clique 3× para acesso rápido"
-            style={{ cursor: "pointer", display: "inline-block", transition: "transform 0.2s" }}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.04)")}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
-          >
-            <CaroldoEmblem size={148} />
-            {/* Citação Salmo 23 */}
-            <div style={{ marginTop: "16px", maxWidth: "380px" }}>
-              <p style={{ color: "#e8e8e8", fontSize: "14px", fontStyle: "italic", fontWeight: 400, fontFamily: "Montserrat, sans-serif", lineHeight: 1.5, margin: 0 }}>
-                "O senhor é meu pastor, nada me faltará."
-              </p>
-              <p style={{ color: "#7a7070", fontSize: "11px", fontWeight: 700, letterSpacing: "0.24em", textTransform: "uppercase", fontFamily: "Montserrat, sans-serif", marginTop: "6px" }}>
-                SALMO 23
-              </p>
-            </div>
-          </div>
-
-          {/* Hero headline */}
-          <div>
-            <h1
-              style={{
-                fontSize: "88px",
-                fontWeight: 900,
-                lineHeight: 1.0,
-                margin: 0,
-                color: "#fff",
-                fontFamily: "Montserrat, sans-serif",
-                letterSpacing: "-2px",
-              }}
-            >
-              Gestão que<br />
-              <span style={{ color: "#FF5500" }}>impulsiona</span><br />
-              resultados<span style={{ color: "#FF5500" }}>.</span>
-            </h1>
-            <p style={{
-              color: "#9a9090",
-              fontSize: "18px",
-              fontFamily: "Montserrat, sans-serif",
-              fontWeight: 400,
-              marginTop: "16px",
-              marginBottom: 0,
-            }}>
-              Sistema integrado de gestão da Caroldo.
-            </p>
-            {/* Barra de acento */}
-            <div style={{
-              marginTop: "20px",
-              height: "4px",
-              width: "72px",
-              borderRadius: "9999px",
-              background: "#FF5500",
-            }} />
-          </div>
-        </div>
-
-        {/* ── Card Interativo Desktop (pixel-perfect do spec) ── */}
-        <div
-          style={{
-            position: "absolute",
-            left: "949px",
-            top: "186px",
-            width: "595px",
-            minHeight: "578px",
-            borderRadius: "31px",
-            border: "1.5px solid #ff9b61",
-            background: [
-              "radial-gradient(ellipse at 96% 0%, rgba(116,47,10,.17), transparent 55%)",
-              "linear-gradient(130deg, #161617 0%, #0b0d0e 54%, #21110b 100%)",
-            ].join(", "),
-            boxShadow: "0 8px 28px #0008, inset 0 0 20px #ff6b0014, 0 0 40px #ff720013",
-            padding: "44px 44px 44px 44px",
-            boxSizing: "border-box",
-          }}
-        >
-          {/* Brilho glow superior-direito do card */}
-          <div style={{
-            position: "absolute",
-            top: "-60px",
-            right: "-60px",
-            width: "240px",
-            height: "240px",
-            borderRadius: "50%",
-            background: "rgba(255,90,0,0.15)",
-            filter: "blur(50px)",
-            pointerEvents: "none",
-          }} />
-          <AuthForm onTripleClick={onTripleClick} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Cena Mobile — reflow vertical com anéis orgânicos
-// ---------------------------------------------------------------------------
-function MobileScene({ onTripleClick }: { onTripleClick: () => void }) {
-  return (
-    <div
-      style={{
-        minHeight: "100dvh",
-        background: "#0c0d10",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        overflowX: "hidden",
-        position: "relative",
-      }}
-    >
-      {/* Anel superior direito */}
-      <div style={{
-        position: "absolute",
-        top: "-160px",
-        right: "-160px",
-        width: "420px",
-        height: "420px",
-        borderRadius: "50%",
-        border: "68px solid #f76a0a",
-        transform: "rotate(35deg)",
-        opacity: 0.55,
-        pointerEvents: "none",
-      }} />
-      {/* Anel inferior esquerdo */}
-      <div style={{
-        position: "absolute",
-        bottom: "-140px",
-        left: "-140px",
-        width: "360px",
-        height: "360px",
-        borderRadius: "50%",
-        border: "63px solid #453e3b",
-        opacity: 0.65,
-        pointerEvents: "none",
-      }} />
-      {/* Reflexo de piso */}
-      <div style={{
-        position: "fixed",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: "100px",
-        background: "linear-gradient(to top, rgba(255,70,0,0.09), transparent)",
-        pointerEvents: "none",
-      }} />
-
-      {/* Header de branding */}
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          paddingTop: "52px",
-          paddingBottom: "28px",
-          textAlign: "center",
-          position: "relative",
-          zIndex: 1,
-        }}
-      >
-        <div
-          onClick={onTripleClick}
-          title="Portal Caroldo — clique 3× para acesso rápido"
-          style={{ cursor: "pointer" }}
-        >
-          <CaroldoEmblem size={120} />
-        </div>
-        <div style={{ marginTop: "14px" }}>
-          <p style={{ color: "#ddd", fontSize: "13px", fontStyle: "italic", fontFamily: "Montserrat, sans-serif", margin: 0, lineHeight: 1.5 }}>
-            "O senhor é meu pastor, nada me faltará."
-          </p>
-          <p style={{ color: "#6a6060", fontSize: "10px", fontWeight: 700, letterSpacing: "0.24em", textTransform: "uppercase", fontFamily: "Montserrat, sans-serif", marginTop: "5px" }}>
-            SALMO 23
-          </p>
-        </div>
-        <h1
-          style={{
-            fontSize: "30px",
-            fontWeight: 900,
-            color: "#fff",
-            fontFamily: "Montserrat, sans-serif",
-            marginTop: "20px",
-            marginBottom: 0,
-            lineHeight: 1.15,
-            letterSpacing: "-0.5px",
-          }}
-        >
-          Gestão que{" "}
-          <span style={{ color: "#FF5500" }}>impulsiona</span>{" "}
-          resultados<span style={{ color: "#FF5500" }}>.</span>
-        </h1>
-      </div>
-
-      {/* Card mobile */}
-      <div
-        style={{
-          width: "min(480px, calc(100vw - 24px))",
-          borderRadius: "28px",
-          border: "1.5px solid rgba(255,140,80,0.35)",
-          background: "linear-gradient(130deg, #161617 0%, #0b0d0e 54%, #1e1008 100%)",
-          boxShadow: "0 8px 40px rgba(0,0,0,0.65), inset 0 0 20px rgba(255,90,0,0.06)",
-          padding: "32px 24px",
-          boxSizing: "border-box",
-          marginBottom: "40px",
-          position: "relative",
-          zIndex: 1,
-        }}
-      >
-        <AuthForm onTripleClick={onTripleClick} isMobile />
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Página principal — orquestra desktop vs mobile
-// ---------------------------------------------------------------------------
-function AuthPage() {
-  const [quickOpen, setQuickOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const scale = useSceneScale();
-
-  const handleTripleClick = useTripleClick(() => setQuickOpen(true), 1200);
-
-  useEffect(() => {
-    function check() { setIsMobile(window.innerWidth < 900); }
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
 
   return (
     <>
-      {/* Google Fonts — Montserrat */}
+      {/* Montserrat — igual ao pacote */}
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
       <link
-        rel="preconnect"
-        href="https://fonts.googleapis.com"
-      />
-      <link
-        rel="preconnect"
-        href="https://fonts.gstatic.com"
-        crossOrigin=""
-      />
-      <link
-        href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet"
       />
 
-      {isMobile
-        ? <MobileScene onTripleClick={handleTripleClick} />
-        : <DesktopScene scale={scale} onTripleClick={handleTripleClick} />
-      }
+      <main>
+        {/* ══════════════════════════════════════════════════
+            DESKTOP — palco 1672×941 com arte-base rasterizada
+            ══════════════════════════════════════════════════ */}
+        <section className="cl-desktop-scene" aria-label="Acesso corporativo Caroldo">
+          <div className="cl-desktop-stage" id="cl-desktop-stage">
+            {/* Arte-base: imagem de referência 3D do pacote */}
+            <img
+              className="cl-reference-art"
+              src="/assets/referencia-desktop.png"
+              alt=""
+              aria-hidden="true"
+            />
+
+            {/* Texto acessível sem duplicar visualmente */}
+            <div className="cl-sr-only">
+              <h1>Gestão que impulsiona resultados.</h1>
+              <p>Sistema integrado de gestão da Caroldo.</p>
+              <p>O senhor é meu pastor, nada me faltará. Salmo 23.</p>
+            </div>
+
+            {/* Card interativo posicionado pixel-perfect */}
+            <div className="cl-login-card cl-desktop-card">
+              <h2 className="cl-card-heading">
+                {/* Triple-click no heading abre QuickAccessDialog */}
+                <span onClick={handleTripleClick} style={{ cursor: "default" }}>
+                  Comece seu dia com
+                </span>
+                <strong>fé, trabalho e compromisso.</strong>
+              </h2>
+              <LoginForm
+                emailId="desktop-email"
+                passwordId="desktop-password"
+                busy={busy}
+                onSubmit={handleLogin}
+                onForgot={handleForgot}
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* ══════════════════════════════════════════════════
+            MOBILE — reflow vertical com anéis orgânicos
+            ══════════════════════════════════════════════════ */}
+        <section className="cl-mobile-scene" aria-label="Acesso Caroldo no celular">
+          <div className="cl-mobile-ribbon" aria-hidden="true" />
+          <div className="cl-mobile-content">
+            <header
+              className="cl-mobile-brand"
+              onClick={handleTripleClick}
+              title="Portal Caroldo — clique 3× para acesso rápido"
+              style={{ cursor: "default" }}
+            >
+              <img
+                src="/assets/logo-caroldo.png"
+                alt="Caroldo Prestação de Serviços Ltda, Triunfo - RS"
+              />
+              <p className="cl-verse">"O senhor é meu pastor, nada me faltará."</p>
+              <p className="cl-verse-source">SALMO 23</p>
+            </header>
+            <div className="cl-mobile-copy">
+              <h1>
+                Gestão que <em>impulsiona</em> resultados<span className="cl-period">.</span>
+              </h1>
+              <p>Sistema integrado de gestão da Caroldo.</p>
+            </div>
+            <div className="cl-login-card cl-mobile-card">
+              <h2 className="cl-card-heading">
+                <span>Comece seu dia com</span>
+                <strong>fé, trabalho e compromisso.</strong>
+              </h2>
+              <LoginForm
+                emailId="mobile-email"
+                passwordId="mobile-password"
+                busy={busy}
+                onSubmit={handleLogin}
+                onForgot={handleForgot}
+              />
+            </div>
+          </div>
+        </section>
+      </main>
 
       <QuickAccessDialog open={quickOpen} onOpenChange={setQuickOpen} />
 
+      {/* ══════════════════════════════════════════════════
+          CSS — espelho fiel do styles.css do pacote
+          (prefixado com cl- para não vazar ao app)
+          ══════════════════════════════════════════════════ */}
       <style>{`
-        * { box-sizing: border-box; }
-        body { margin: 0; padding: 0; overflow-x: hidden; }
-        ::selection { background: #FF5500; color: #fff; }
-        input::placeholder { color: #52525B; }
-        input[type="password"]::-ms-reveal,
-        input[type="password"]::-webkit-credentials-auto-fill-button { display: none; }
+        /* Reset mínimo */
+        *, *::before, *::after { box-sizing: border-box; }
+
+        /* Variáveis */
+        :root {
+          --cl-orange:     #ff6a00;
+          --cl-orange-hot: #ff4d0a;
+          --cl-white:      #fff;
+          --cl-soft:       #b8b8bd;
+          --cl-field:      #1c1c1e;
+        }
+
+        /* Tipografia base */
+        body { font-family: Montserrat, Arial, sans-serif; background: #09090a; color: #fff; -webkit-font-smoothing: antialiased; }
+        button, input { font: inherit; }
+        button { cursor: pointer; }
+
+        /* Screen-reader only */
+        .cl-sr-only {
+          position: absolute; width: 1px; height: 1px; padding: 0;
+          margin: -1px; overflow: hidden; clip: rect(0,0,0,0);
+          white-space: nowrap; border: 0;
+        }
+
+        /* ── DESKTOP SCENE ── */
+        .cl-desktop-scene {
+          position: fixed; inset: 0;
+          display: flex; align-items: center; justify-content: center;
+          overflow: hidden; background: #070708;
+        }
+        .cl-desktop-stage {
+          width: 1672px; height: 941px;
+          position: relative; flex: 0 0 auto;
+          transform: scale(var(--scene-scale, 1));
+          transform-origin: center center;
+        }
+        .cl-reference-art {
+          position: absolute; width: 1672px; height: 941px;
+          inset: 0; object-fit: cover;
+          pointer-events: none; user-select: none;
+        }
+
+        /* ── CARD ── */
+        .cl-login-card { color: #fff; isolation: isolate; }
+        .cl-desktop-card {
+          position: absolute; left: 949px; top: 186px;
+          width: 595px; min-height: 578px;
+          padding: 50px 60px 43px;
+          border-radius: 31px; border: 1.5px solid #ff9b61;
+          background:
+            radial-gradient(ellipse at 96% 0%, rgba(116,47,10,.17), transparent 55%),
+            linear-gradient(130deg, #161617 0%, #0b0d0e 54%, #21110b 100%);
+          box-shadow: 0 8px 28px #0008, inset 0 0 20px #ff6b0014, 0 0 40px #ff720013;
+          overflow: visible;
+        }
+        .cl-desktop-card::before {
+          content: "";
+          position: absolute; inset: 0; border-radius: inherit;
+          pointer-events: none;
+          background: linear-gradient(155deg, rgba(255,117,37,.08), transparent 41%, transparent 72%, rgba(240,79,0,.16));
+          z-index: -1;
+        }
+
+        /* ── HEADING ── */
+        .cl-card-heading {
+          font-weight: 800; letter-spacing: -1.5px; line-height: 1.16;
+          margin: 0 0 38px; font-size: 35px;
+        }
+        .cl-card-heading span,
+        .cl-card-heading strong { display: block; }
+        .cl-card-heading span   { color: white; }
+        .cl-card-heading strong {
+          color: #ff671a; font-weight: 800;
+          white-space: nowrap; font-size: 34px; letter-spacing: -1.7px;
+        }
+
+        /* ── FORM ── */
+        .cl-login-form { display: block; }
+        .cl-field-group { position: relative; margin-bottom: 26px; }
+        .cl-field-group > label { display: block; font-size: 16px; font-weight: 600; margin: 0 0 10px; line-height: 1.25; }
+
+        .cl-field-shell {
+          display: flex; align-items: center;
+          height: 60px; border-radius: 14px;
+          border: 1px solid #6c6261;
+          background: linear-gradient(100deg, #232124ed, #222224e3);
+          transition: border-color .18s, box-shadow .18s;
+        }
+        .cl-field-shell:focus-within {
+          border-color: #ff8d43;
+          box-shadow: 0 0 0 3px #ff760026;
+        }
+
+        .cl-field-icon {
+          width: 25px; height: 25px; flex: 0 0 25px; margin-left: 19px;
+          fill: none; stroke: #fff; stroke-width: 1.7;
+          stroke-linecap: round; stroke-linejoin: round;
+        }
+        .cl-field-shell input {
+          background: transparent; color: #fff; border: 0; outline: 0;
+          min-width: 0; flex: 1;
+          padding: 0 14px 0 18px; height: 100%;
+          font-size: 15px; letter-spacing: -.4px;
+        }
+        .cl-field-shell input::placeholder { color: #b5b4b8; opacity: 1; }
+        .cl-field-shell input:-webkit-autofill {
+          -webkit-text-fill-color: #fff;
+          transition: background-color 999999s;
+        }
+
+        /* Toggle de senha */
+        .cl-reveal {
+          width: 52px; height: 100%;
+          background: transparent; border: 0; color: white;
+          display: flex; align-items: center; justify-content: center;
+          border-radius: 13px;
+        }
+        .cl-eye-svg {
+          width: 23px; height: 23px;
+          fill: none; stroke: currentColor; stroke-width: 1.6;
+          stroke-linecap: round; stroke-linejoin: round;
+        }
+        .cl-reveal:hover { color: #ff8a40; }
+        :focus-visible { outline: 2px solid #ffae6d; outline-offset: 3px; }
+
+        /* Erros de campo */
+        .cl-field-error {
+          position: absolute; left: 4px; top: 100%;
+          margin: 3px 0 0; color: #ffae8c; font-size: 11px; line-height: 1.2; min-height: 0;
+        }
+        .cl-has-error { margin-bottom: 32px; }
+        .cl-password-group { margin-bottom: 21px; }
+
+        /* Actions row */
+        .cl-actions-row {
+          display: flex; justify-content: space-between; align-items: center;
+          gap: 12px; margin-bottom: 28px; font-size: 14px; letter-spacing: -.4px;
+        }
+        .cl-remember {
+          display: flex; align-items: center; gap: 12px;
+          cursor: pointer; white-space: nowrap;
+        }
+        .cl-remember input {
+          appearance: none; margin: 0;
+          width: 23px; height: 23px; border-radius: 4px;
+          border: 1px solid #8a7471; background: #141416;
+          display: grid; place-content: center;
+          cursor: pointer; flex: 0 0 auto;
+        }
+        .cl-remember input:checked::after {
+          content: "";
+          width: 11px; height: 6px;
+          border: solid #ff6b00; border-width: 0 0 2px 2px;
+          transform: rotate(-45deg) translate(0, -2px);
+        }
+        .cl-forgot {
+          background: none; border: none; padding: 0;
+          color: #cbcad0; text-decoration: none;
+          white-space: nowrap; font-size: 13px;
+          transition: color .15s;
+        }
+        .cl-forgot:hover, .cl-forgot:focus-visible {
+          color: white; text-decoration: underline;
+        }
+
+        /* CTA */
+        .cl-submit-button {
+          height: 69px; width: 100%;
+          background: linear-gradient(100deg, #ff8b00 0%, #ff5700 57%, #ff4e09 100%);
+          border: 0; border-radius: 26px;
+          color: white; font-size: 19px; font-weight: 700; letter-spacing: -.7px;
+          display: flex; align-items: center; justify-content: center; gap: 15px;
+          box-shadow: 0 10px 27px #fa560052, inset 0 1px 0 #ffb26d60;
+          transition: filter .2s, transform .2s;
+        }
+        .cl-submit-button:hover  { filter: brightness(1.09); transform: translateY(-1px); }
+        .cl-submit-button:active { transform: translateY(0); }
+        .cl-submit-button:disabled { opacity: .72; cursor: wait; }
+        .cl-cta-arrow {
+          width: 22px; height: 22px;
+          fill: none; stroke: currentColor; stroke-width: 1.8;
+          stroke-linecap: round; stroke-linejoin: round;
+        }
+
+        /* ── MOBILE SCENE ── */
+        .cl-mobile-scene { display: none; }
+
+        @media (max-width: 900px) {
+          .cl-desktop-scene { display: none; }
+          .cl-mobile-scene {
+            position: relative; display: block;
+            overflow: hidden; min-height: 100svh;
+            background:
+              radial-gradient(ellipse at 105% 10%, #4d230f 0%, transparent 47%),
+              radial-gradient(ellipse at 0% 100%,  #331305 0%, transparent 45%),
+              #0a0a0d;
+          }
+          .cl-mobile-scene::before {
+            content: "";
+            position: absolute; top: -220px; right: -310px;
+            width: 670px; height: 670px;
+            border: 68px solid #f76a0a; border-radius: 50%;
+            transform: rotate(35deg) skew(-12deg);
+            box-shadow: inset 15px -12px 22px #9c3005, 0 0 70px #ff6e0025;
+            opacity: .64; pointer-events: none;
+          }
+          .cl-mobile-scene::after {
+            content: "";
+            position: absolute; bottom: -420px; left: -370px;
+            width: 690px; height: 690px;
+            border: 63px solid #453e3b; border-radius: 50%;
+            opacity: .3; pointer-events: none;
+          }
+          .cl-mobile-ribbon {
+            position: absolute; top: 340px; right: -250px;
+            width: 480px; height: 480px;
+            border: 50px solid #301d19;
+            border-top-color: #ea5a0a; border-left-color: #f77f18;
+            border-radius: 50%; transform: rotate(30deg);
+            filter: blur(2px); opacity: .32;
+          }
+          .cl-mobile-content {
+            position: relative; z-index: 1;
+            display: flex; flex-direction: column; align-items: center;
+            max-width: 480px; margin: auto;
+            padding: 32px 20px max(24px, env(safe-area-inset-bottom));
+          }
+          .cl-mobile-brand { text-align: center; }
+          .cl-mobile-brand img {
+            display: block; width: 144px; height: 144px;
+            object-fit: contain; margin: 0 auto 8px;
+            filter: drop-shadow(0 5px 14px #0009);
+          }
+          .cl-verse        { font-size: 12px; font-weight: 700; margin: 0; line-height: 1.5; }
+          .cl-verse-source { font-size: 11px; color: #a8a5a8; margin: 5px 0 0; letter-spacing: .7px; }
+
+          .cl-mobile-copy { text-align: center; margin: 26px 0 23px; }
+          .cl-mobile-copy h1 {
+            font-size: clamp(29px, 7.9vw, 45px);
+            line-height: 1.06; letter-spacing: -1.6px; font-weight: 900; margin: 0 0 13px;
+          }
+          .cl-mobile-copy h1 em    { display: block; color: #ff6a00; font-style: normal; }
+          .cl-mobile-copy h1 .cl-period { color: #ff6a00; }
+          .cl-mobile-copy p { font-size: 13px; line-height: 1.5; color: #c5c1c5; margin: 0; }
+
+          .cl-mobile-card {
+            width: 100%; border-radius: 23px; padding: 28px 23px 25px;
+            border: 1px solid #ff995d;
+            background: linear-gradient(139deg, #1b1819ed, #0b0c0eef 64%, #261309ef);
+            box-shadow: 0 15px 45px #0008, inset 0 0 24px #ff6a0010, 0 0 30px #ff6a0016;
+            backdrop-filter: blur(18px);
+          }
+          .cl-card-heading {
+            font-size: clamp(21px, 5.5vw, 28px); line-height: 1.18;
+            letter-spacing: -.8px; margin-bottom: 26px;
+          }
+          .cl-card-heading strong {
+            font-size: clamp(20px, 5vw, 26px); letter-spacing: -.7px;
+            white-space: normal; margin-top: 3px;
+          }
+          .cl-field-group   { margin-bottom: 23px; }
+          .cl-field-group > label { font-size: 13px; margin-bottom: 8px; }
+          .cl-field-shell   { height: 54px; border-radius: 12px; }
+          .cl-field-icon    { width: 21px; height: 21px; flex-basis: 21px; margin-left: 15px; }
+          .cl-field-shell input { padding-left: 12px; font-size: 13px; }
+          .cl-password-group { margin-bottom: 18px; }
+          .cl-actions-row   { font-size: 11px; gap: 8px; margin-bottom: 24px; }
+          .cl-forgot        { font-size: 11px; }
+          .cl-remember      { gap: 7px; }
+          .cl-remember input { width: 19px; height: 19px; }
+          .cl-submit-button { height: 57px; border-radius: 18px; font-size: 14px; }
+          .cl-cta-arrow     { width: 18px; height: 18px; }
+        }
+
+        @media (max-width: 350px) {
+          .cl-mobile-content { padding-inline: 12px; }
+          .cl-mobile-card    { padding-inline: 16px; }
+          .cl-actions-row    { flex-wrap: wrap; }
+          .cl-forgot         { margin-left: auto; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after { transition: none !important; animation: none !important; }
+        }
       `}</style>
     </>
   );
