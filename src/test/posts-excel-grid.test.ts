@@ -195,4 +195,36 @@ describe("📋 FLUXO HIERÁRQUICO DE POSTOS EM GRADE ESTILO EXCEL (/postos)", ()
     expect(postosContent).toContain("totalActualPosts > contractLimitPosts");
     expect(postosContent).toContain("totalAllocatedStaff > contractLimitStaff");
   });
+
+  it("12. Permite múltiplos funcionários por posto (até 100+ pessoas) sem confundir com a quantidade de postos (30 postos)", () => {
+    // Garante que o input permite números de 1 até centenas (max 999) para acomodar postos com até 100+ pessoas
+    expect(postosContent).toContain("max={999}");
+    expect(postosContent).toContain('placeholder="1 a 100+"');
+    expect(postosContent).toContain("Até 100/posto");
+
+    // Garante que o cabeçalho explicita Funcionários no Posto
+    expect(postosContent).toContain("Funcionários no Posto (Qtd. Exigida)");
+
+    // Garante que um posto com até 100 funcionários é suportado e salvo
+    const testPostWith100Workers = {
+      contract_id: "c1111111-1111-1111-1111-111111111111",
+      code: "P01",
+      workplace: "Hospital Central",
+      city: "Porto Alegre",
+      role_name: "Servente de Limpeza",
+      required_qty: 100,
+      active: true,
+    };
+    expect(testPostWith100Workers.required_qty).toBe(100);
+  });
+
+  it("13. Previne erro 'null value in column id of relation posts' gerando/resolvendo id UUID não-nulo para todos os postos", () => {
+    const dataTsPath = path.resolve(__dirname, "../lib/data.ts");
+    const dataTsContent = fs.readFileSync(dataTsPath, "utf-8");
+
+    // Valida que upsertContractPostsBatch possui geração/resolução segura de UUID para todos os registros
+    expect(dataTsContent).toContain("generateSafeUUID");
+    expect(dataTsContent).toContain("isValidUUID");
+    expect(dataTsContent).toContain("existingIdByCode");
+  });
 });

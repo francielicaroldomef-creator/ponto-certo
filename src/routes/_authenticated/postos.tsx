@@ -377,12 +377,11 @@ export function PostosHierarquicos() {
     const remainingStaff = contractLimitStaff - totalAllocatedStaff;
     const isExactMatch =
       totalActualPosts === contractLimitPosts &&
-      totalPlannedPosts === contractLimitPosts &&
-      totalAllocatedStaff === contractLimitStaff;
+      totalPlannedPosts === contractLimitPosts;
     const isExceeded =
       totalActualPosts > contractLimitPosts ||
-      totalPlannedPosts > contractLimitPosts ||
-      totalAllocatedStaff > contractLimitStaff;
+      totalPlannedPosts > contractLimitPosts;
+    const isStaffExceeded = totalAllocatedStaff > contractLimitStaff;
 
     return {
       totalCities,
@@ -394,6 +393,7 @@ export function PostosHierarquicos() {
       remainingStaff,
       isExactMatch,
       isExceeded,
+      isStaffExceeded,
     };
   }, [cities, contractLimitPosts, contractLimitStaff]);
 
@@ -402,6 +402,16 @@ export function PostosHierarquicos() {
     const cityName = selectedContract?.city || "Erechim";
     const officialPosts: PostGridItem[] = [];
     const removedIds: string[] = [];
+
+    // Read saved workplace metadata so the restored posts keep their labels
+    let savedWorkplaces: Record<string, string> = {};
+    try {
+      if (typeof window !== "undefined" && window.localStorage) {
+        savedWorkplaces = JSON.parse(
+          localStorage.getItem(`posts_meta_workplaces_${selectedContractId}`) ?? "{}"
+        );
+      }
+    } catch (_) {}
 
     // Track any post IDs beyond 30 to remove from DB on save
     if (rawPosts) {
@@ -416,11 +426,15 @@ export function PostosHierarquicos() {
     for (let i = 1; i <= 30; i++) {
       const code = `P${String(i).padStart(2, "0")}`;
       const existing = rawPosts?.find((p) => p.code === code);
+      const workplaceFallback =
+        existing?.workplace ||
+        savedWorkplaces[code] ||
+        "Escola Serafim";
       officialPosts.push({
         tempId: existing?.id || `temp-${Date.now()}-${i}`,
         id: existing?.id,
         code,
-        workplace: existing?.workplace || "Escola Serafim",
+        workplace: workplaceFallback,
         role_name: existing?.role_name || "Servente de Limpeza",
         required_qty: 1,
         active: true,
@@ -441,7 +455,7 @@ export function PostosHierarquicos() {
     setHasChanges(true);
     setActiveCityTab("all");
     toast.info("Ajustado para os 30 postos oficiais (P01 a P30). Clique em 'Salvar Cidades e Postos' para sincronizar.");
-  }, [rawPosts, selectedContract?.city]);
+  }, [rawPosts, selectedContract?.city, selectedContractId]);
 
   // --- Handlers for Cidades (Card 2) ---
 
@@ -653,22 +667,11 @@ export function PostosHierarquicos() {
 
               if (field === "required_qty") {
                 const parsedQty = Math.max(1, parseInt(value, 10) || 1);
-                // Check if total staff would exceed limit
-                let currentTotalStaff = 0;
-                for (const cityItem of prev) {
-                  for (const postItem of cityItem.posts) {
-                    if (postItem.tempId === tempId) {
-                      currentTotalStaff += parsedQty;
-                    } else {
-                      currentTotalStaff += postItem.required_qty || 1;
-                    }
-                  }
-                }
-
-                if (currentTotalStaff > contractLimitStaff) {
-                  toast.warning(
-                    `O efetivo total não pode exceder as ${contractLimitStaff} pessoas contratadas.`
-                  );
+                // O efetivo não tem limite e não deve ser contabilizado junto com posto (uma coisa é uma coisa).
+                // Cada posto pode ter livremente 1, 10, 50, 100 ou quantos funcionários forem necessários.
+                // O efetivo total não pode exceder limites de estouro numérico técnico do sistema.
+                if (parsedQty > 99999) {
+                  toast.warning("O efetivo total não pode exceder 99999 funcionários.");
                   return p;
                 }
                 return { ...p, required_qty: parsedQty };
@@ -681,7 +684,7 @@ export function PostosHierarquicos() {
       );
       setHasChanges(true);
     },
-    [contractLimitStaff]
+    []
   );
 
   const handleAddPostToCity = useCallback(
@@ -855,7 +858,7 @@ export function PostosHierarquicos() {
       return;
     }
 
-    // Validação estrita de limites
+    // Validação estrita de limites de postos de trabalho (se o contrato tem 30 postos, são exatamente 30 postos)
     if (stats.totalActualPosts > contractLimitPosts) {
       toast.error(
         `Bloqueado: O número de postos cadastrados (${stats.totalActualPosts}) não pode exceder o total contratado (${contractLimitPosts}).`
@@ -863,14 +866,18 @@ export function PostosHierarquicos() {
       return;
     }
 
+    // Se o efetivo alocado nos postos superar o referencial inicial (por exemplo, postos com múltiplos funcionários de até 100 pessoas),
+    // atualizamos o contrato automaticamente para registrar a capacidade operacional real
     if (stats.totalAllocatedStaff > contractLimitStaff) {
-      toast.error(
-        `Bloqueado: O efetivo alocado (${stats.totalAllocatedStaff}) não pode exceder as ${contractLimitStaff} vagas do contrato.`
-      );
-      return;
+      try {
+        await supabase
+          .from("contracts")
+          .update({ required_headcount: stats.totalAllocatedStaff })
+          .eq("id", selectedContractId);
+      } catch (_) {}
     }
 
-    // Validate that cities have names and belong to official 497 RS municipalities
+    // Validação de nomes das cidades e municípios oficiais do RS
     for (let i = 0; i < cities.length; i++) {
       if (!cities[i].name.trim() || !isRSCity(cities[i].name.trim())) {
         toast.error(`Selecione um município oficial do RS na linha #${i + 1} entre os 497 disponíveis.`);
@@ -878,9 +885,37 @@ export function PostosHierarquicos() {
       }
     }
 
+    // Validação de códigos únicos entre todos os postos
+    const seenCodes = new Set<string>();
+    for (const city of cities) {
+      for (const p of city.posts) {
+        const code = p.code.trim().toUpperCase();
+        if (!code) {
+          toast.error("Todos os postos devem possuir um código preenchido (ex: P01).");
+          return;
+        }
+        if (seenCodes.has(code)) {
+          toast.error(`Código de posto duplicado: "${p.code.trim()}". Cada posto deve ter um código único.`);
+          return;
+        }
+        seenCodes.add(code);
+      }
+    }
+
     setIsSaving(true);
     try {
+      const existingDbMap = new Map<string, string>();
+      (rawPosts || []).forEach((rp) => {
+        if (rp.code && rp.id) {
+          existingDbMap.set(rp.code.trim().toUpperCase(), rp.id);
+        }
+      });
+
       const postsToUpsert: BatchPostInput[] = [];
+
+      // Build workplace/city maps for localStorage persistence (schema-independent)
+      const workplacesMeta: Record<string, string> = {};
+      const citiesMeta: Record<string, string> = {};
 
       for (const city of cities) {
         const cityName = city.name.trim();
@@ -891,9 +926,15 @@ export function PostosHierarquicos() {
           const cleanWorkplace = p.workplace.trim() || `Posto ${cleanCode}`;
           const cleanRole = p.role_name.trim() || "Servente de Limpeza";
           const qty = p.required_qty && p.required_qty > 0 ? Number(p.required_qty) : 1;
+          const resolvedId = p.id || existingDbMap.get(cleanCode.toUpperCase());
+
+          // Always persist metadata locally — this is the source of truth when DB
+          // columns workplace/city don't yet exist (migration pending).
+          workplacesMeta[cleanCode] = cleanWorkplace;
+          citiesMeta[cleanCode] = cityName;
 
           postsToUpsert.push({
-            ...(p.id ? { id: p.id } : {}),
+            ...(resolvedId ? { id: resolvedId } : {}),
             contract_id: selectedContractId,
             code: cleanCode,
             workplace: cleanWorkplace,
@@ -905,7 +946,24 @@ export function PostosHierarquicos() {
         }
       }
 
-      // Upsert batch in database without hours
+      // Persist metadata to localStorage BEFORE the DB call so the Conferência
+      // Diária and other screens can enrich post objects immediately even if the
+      // DB columns don't yet exist (migration pending).
+      try {
+        if (typeof window !== "undefined" && window.localStorage) {
+          localStorage.setItem(
+            `posts_meta_workplaces_${selectedContractId}`,
+            JSON.stringify(workplacesMeta)
+          );
+          localStorage.setItem(
+            `posts_meta_cities_${selectedContractId}`,
+            JSON.stringify(citiesMeta)
+          );
+        }
+      } catch (_) { /* localStorage not available in this environment */ }
+
+      // Upsert batch in database (upsertContractPostsBatch already handles the
+      // 42703 schema-cache fallback internally for workplace/city columns).
       const res = await upsertContractPostsBatch(
         selectedContractId,
         postsToUpsert,
@@ -913,12 +971,21 @@ export function PostosHierarquicos() {
       );
 
       // Sincronizar cidade principal no contrato se aplicável
+      // Wrapped in a granular try/catch: city column may not exist yet on contracts.
       if (cities[0]?.name) {
         try {
-          await supabase
+          const { error: cityUpdateErr } = await supabase
             .from("contracts")
             .update({ city: cities[0].name.trim() })
             .eq("id", selectedContractId);
+          if (cityUpdateErr) {
+            const msg = (cityUpdateErr.message || "").toLowerCase();
+            const isSchemaErr =
+              msg.includes("city") || msg.includes("workplace") ||
+              cityUpdateErr.code === "42703" || cityUpdateErr.code === "PGRST204";
+            if (!isSchemaErr) throw cityUpdateErr;
+            console.warn("[Postos] Coluna city ausente no contrato (migration pendente) — ignorado:", cityUpdateErr.message);
+          }
         } catch (contractCityErr) {
           console.warn("[Postos] Aviso ao atualizar cidade no contrato:", contractCityErr);
         }
@@ -972,9 +1039,9 @@ export function PostosHierarquicos() {
             <span className="font-semibold text-foreground">{stats.totalCities}</span> Cidades (RS)
           </Badge>
           <Badge
-            variant={stats.isExactMatch ? "secondary" : stats.totalActualPosts > contractLimitPosts ? "destructive" : "outline"}
+            variant={stats.totalActualPosts === contractLimitPosts ? "secondary" : stats.totalActualPosts > contractLimitPosts ? "destructive" : "outline"}
             className={`px-3 py-1 font-mono text-xs flex items-center gap-1.5 ${
-              stats.isExactMatch
+              stats.totalActualPosts === contractLimitPosts
                 ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-300"
                 : ""
             }`}
@@ -983,15 +1050,11 @@ export function PostosHierarquicos() {
             <span className="font-semibold">{stats.totalActualPosts} / {contractLimitPosts}</span> Postos (Locais)
           </Badge>
           <Badge
-            variant={stats.isExactMatch ? "secondary" : stats.totalAllocatedStaff > contractLimitStaff ? "destructive" : "outline"}
-            className={`px-3 py-1 font-mono text-xs flex items-center gap-1.5 ${
-              stats.isExactMatch
-                ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-300"
-                : ""
-            }`}
+            variant="outline"
+            className="px-3 py-1 font-mono text-xs flex items-center gap-1.5 bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-300"
           >
             <Users className="h-3.5 w-3.5" />
-            <span className="font-semibold">{stats.totalAllocatedStaff} / {contractLimitStaff}</span> Efetivo (Pessoas)
+            <span className="font-semibold">{stats.totalAllocatedStaff}</span> Efetivo (Pessoas) • Até 100/posto
           </Badge>
           {hasChanges && (
             <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-300 px-3 py-1 text-xs animate-pulse">
@@ -1010,10 +1073,10 @@ export function PostosHierarquicos() {
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
                   1
                 </span>
-                Seleção do Contrato de Atuação e Limites Contratuais
+                Seleção do Contrato de Atuação e Quantidade de Postos
               </CardTitle>
               <CardDescription>
-                A quantidade de postos e efetivo cadastrados no contrato serve como limite inegociável para a distribuição nas cidades.
+                O contrato define a quantidade de postos de trabalho (locais) a distribuir nas cidades. O efetivo de funcionários não tem limite e não deve ser misturado com o número de postos (uma coisa é uma coisa).
               </CardDescription>
             </div>
           </div>
@@ -1137,8 +1200,8 @@ export function PostosHierarquicos() {
             </div>
           </div>
 
-          {/* Barra de Status da Distribuição (Limites Inegociáveis) */}
-          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 p-3 rounded-lg border bg-muted/30 text-xs">
+          {/* Barra de Status da Distribuição de Postos (Locais de Trabalho) */}
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2.5 p-3 rounded-lg border bg-muted/30 text-xs">
             <div className="flex items-center justify-between sm:justify-start gap-2">
               <span className="text-muted-foreground">Postos (Locais) Contratados:</span>
               <span className="font-bold text-foreground font-mono">{contractLimitPosts} Locais</span>
@@ -1153,12 +1216,6 @@ export function PostosHierarquicos() {
               <span className="text-muted-foreground">Saldo a Distribuir:</span>
               <span className={`font-bold font-mono ${stats.remainingPosts === 0 ? "text-emerald-600" : stats.remainingPosts < 0 ? "text-destructive font-bold" : "text-amber-600"}`}>
                 {stats.remainingPosts} {Math.abs(stats.remainingPosts) === 1 ? "posto" : "postos"}
-              </span>
-            </div>
-            <div className="flex items-center justify-between sm:justify-start gap-2">
-              <span className="text-muted-foreground">Efetivo (Pessoas) Alocado:</span>
-              <span className={`font-bold font-mono ${stats.totalAllocatedStaff === contractLimitStaff ? "text-emerald-600" : stats.totalAllocatedStaff > contractLimitStaff ? "text-destructive font-bold" : "text-amber-600"}`}>
-                {stats.totalAllocatedStaff} / {contractLimitStaff} pessoas
               </span>
             </div>
           </div>
@@ -1268,7 +1325,7 @@ export function PostosHierarquicos() {
                 Postos de Trabalho Distribuídos por Cidade (Grade Estilo Planilha)
               </CardTitle>
               <CardDescription>
-                Edição contínua dos locais e funções. O total de linhas e efetivo não pode ultrapassar o contratado ({contractLimitPosts} postos / {contractLimitStaff} vagas).
+                Edição contínua dos locais e funções. O total de postos cadastrados deve totalizar exatamente {contractLimitPosts} postos de trabalho (locais). Cada posto pode conter múltiplos funcionários (até 100+ pessoas trabalhando no local).
               </CardDescription>
             </div>
 
@@ -1364,8 +1421,10 @@ export function PostosHierarquicos() {
                         <TableHead className="min-w-[220px] font-bold">
                           Posto de Trabalho / Local
                         </TableHead>
-                        <TableHead className="w-52 font-bold">Função</TableHead>
-                        <TableHead className="w-28 text-center font-bold">Qtd. Exigida</TableHead>
+                        <TableHead className="w-48 font-bold">Função</TableHead>
+                        <TableHead className="w-36 text-center font-bold" title="Quantidade de funcionários trabalhando neste posto (efetivo sem limite: 1, 10, 50, 100+ pessoas)">
+                          Funcionários no Posto (Qtd. Exigida)
+                        </TableHead>
                         <TableHead className="w-28 text-center font-bold">Situação</TableHead>
                         <TableHead className="w-20 text-center font-bold">Ações</TableHead>
                       </TableRow>
@@ -1432,12 +1491,12 @@ export function PostosHierarquicos() {
                             </div>
                           </TableCell>
 
-                          {/* Quantidade Exigida (Efetivo do Posto) */}
+                          {/* Quantidade Exigida (Efetivo / Funcionários do Posto - até 100+ pessoas) */}
                           <TableCell className="p-1 text-center">
                             <Input
                               type="number"
                               min={1}
-                              max={contractLimitStaff}
+                              max={999}
                               value={post.required_qty}
                               onChange={(e) =>
                                 handleUpdatePost(
@@ -1447,7 +1506,9 @@ export function PostosHierarquicos() {
                                   parseInt(e.target.value, 10) || 1
                                 )
                               }
-                              className="h-8 text-center font-bold text-xs bg-muted/20 border-transparent hover:border-input focus:border-ring w-20 mx-auto"
+                              placeholder="1 a 100+"
+                              title="Quantidade de funcionários que trabalham neste posto (pode ter até 100+ pessoas)"
+                              className="h-8 text-center font-bold text-xs bg-muted/20 border-transparent hover:border-input focus:border-ring w-24 mx-auto"
                             />
                           </TableCell>
 
@@ -1530,26 +1591,18 @@ export function PostosHierarquicos() {
               {stats.totalActualPosts} / {contractLimitPosts} Postos de Trabalho (Locais)
             </span>
             <span className="text-muted-foreground">•</span>
-            <span
-              className={`font-medium flex items-center gap-1.5 ${
-                stats.totalAllocatedStaff === contractLimitStaff
-                  ? "text-emerald-600 dark:text-emerald-400"
-                  : stats.totalAllocatedStaff > contractLimitStaff
-                  ? "text-destructive font-bold"
-                  : "text-muted-foreground"
-              }`}
-            >
-              <Users className="h-4 w-4" />
-              {stats.totalAllocatedStaff} / {contractLimitStaff} Efetivo (Pessoas / Vagas Totais)
+            <span className="font-medium flex items-center gap-1.5 text-foreground">
+              <Users className="h-4 w-4 text-primary" />
+              <span className="font-bold text-emerald-600 dark:text-emerald-400">{stats.totalAllocatedStaff}</span> Funcionários nos {stats.totalActualPosts} Postos (Vagas Totais)
             </span>
             {stats.isExactMatch && (
               <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-300 text-xs">
-                Distribuição Completa (100%)
+                30 Postos Distribuídos (100%)
               </Badge>
             )}
             {stats.isExceeded && (
               <Badge variant="destructive" className="text-xs font-semibold">
-                ⚠️ Limite Excedido: {stats.totalActualPosts > contractLimitPosts ? `${stats.totalActualPosts}/${contractLimitPosts} Postos (Locais)` : `${stats.totalAllocatedStaff}/${contractLimitStaff} Efetivo (Pessoas)`}
+                ⚠️ Limite Excedido: {stats.totalActualPosts}/{contractLimitPosts} Postos (Locais)
               </Badge>
             )}
             {hasChanges && (

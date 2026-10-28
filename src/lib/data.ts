@@ -46,10 +46,14 @@ export interface PeriodData {
 /** Load and compute everything for a contract and date range. Single source for all screens/reports. */
 export async function loadPeriod(contractId: string, from: string, to: string, userRoles?: string[]): Promise<PeriodData> {
   const [schedules, attendance, coverages, divergences, treatments, contracts, closings] = await Promise.all([
+    // NOTE: "workplace" and "city" are optional columns — omitted here to keep
+    // the query compatible with databases that haven't yet applied the migration.
+    // After the migration lands, enrichment is done in-memory from localStorage
+    // (posts_meta_workplaces_<contractId> / posts_meta_cities_<contractId>).
     fetchAll((a, b) =>
       supabase
         .from("schedules")
-        .select("*, employee:employees(id, registration, name), post:posts(id, code, workplace, city, hour_value, day_value)")
+        .select("*, employee:employees(id, registration, name), post:posts(id, code, hour_value, day_value)")
         .eq("contract_id", contractId)
         .gte("work_date", from)
         .lte("work_date", to)
@@ -81,6 +85,27 @@ export async function loadPeriod(contractId: string, from: string, to: string, u
     fetchAll((a, b) => supabase.from("contracts").select("discount_rule").eq("id", contractId).range(a, b)),
     fetchAll((a, b) => supabase.from("closings").select("*").eq("contract_id", contractId).eq("status", "fechado").lte("period_start", to).gte("period_end", from).range(a, b)),
   ]);
+  // Backfill workplace/city from localStorage when the DB columns are not yet
+  // present (migration pending). This keeps all screens consistent without
+  // requiring the columns to exist in production.
+  try {
+    if (typeof window !== "undefined" && window.localStorage) {
+      const workplaceMap: Record<string, string> = JSON.parse(
+        localStorage.getItem(`posts_meta_workplaces_${contractId}`) ?? "{}"
+      );
+      const cityMap: Record<string, string> = JSON.parse(
+        localStorage.getItem(`posts_meta_cities_${contractId}`) ?? "{}"
+      );
+      for (const s of schedules as any[]) {
+        if (s.post && s.post.code) {
+          const code = String(s.post.code).trim();
+          if (!s.post.workplace && workplaceMap[code]) s.post.workplace = workplaceMap[code];
+          if (!s.post.city && cityMap[code]) s.post.city = cityMap[code];
+        }
+      }
+    }
+  } catch (_) { /* localStorage not available – ignore */ }
+
   const attBySched = new Map(attendance.map((a: any) => [a.schedule_id, a]));
   const covKey = (postId: string, d: string) => `${postId}|${d}`;
   const covByPostDay = new Map<string, any[]>();
@@ -220,9 +245,26 @@ export interface BatchPostInput {
   active?: boolean;
 }
 
+function isValidUUID(id?: string | null): boolean {
+  if (!id || typeof id !== "string") return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id.trim());
+}
+
+function generateSafeUUID(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 /**
  * Persists posts in batch linked to a contract and city.
  * Fills safe legacy defaults for start/end/break hours without exposing them.
+ * Guarantees that every post has a valid, non-null UUID id so PostgREST never errors.
  */
 export async function upsertContractPostsBatch(
   contractId: string,
@@ -241,23 +283,46 @@ export async function upsertContractPostsBatch(
     return { count: 0 };
   }
 
-  const rows = posts.map((p) => ({
-    ...(p.id ? { id: p.id } : {}),
-    contract_id: contractId,
-    code: p.code.trim(),
-    workplace: p.workplace.trim() || `Posto ${p.code.trim()}`,
-    city: p.city.trim(),
-    role_name: p.role_name?.trim() || "Servente de Limpeza",
-    required_qty: p.required_qty && p.required_qty > 0 ? Number(p.required_qty) : 1,
-    active: p.active ?? true,
-    start_time: "08:00",
-    end_time: "17:00",
-    break_start: "12:00",
-    break_end: "13:00",
-    shift: "Diurno",
-    day_value: 0,
-    hour_value: 0,
-  }));
+  // Buscar post IDs já existentes no banco para este contrato para reaproveitar o ID original
+  const existingIdByCode = new Map<string, string>();
+  try {
+    const { data: existingDbPosts } = await supabase
+      .from("posts")
+      .select("id, code")
+      .eq("contract_id", contractId);
+
+    (existingDbPosts || []).forEach((ep: any) => {
+      if (ep?.code && ep?.id && isValidUUID(ep.id)) {
+        existingIdByCode.set(ep.code.trim().toUpperCase(), ep.id);
+      }
+    });
+  } catch (_) {}
+
+  const rows = posts.map((p) => {
+    const cleanCode = p.code.trim().toUpperCase();
+    let rowId = p.id && isValidUUID(p.id) ? p.id : existingIdByCode.get(cleanCode);
+    if (!rowId || !isValidUUID(rowId)) {
+      rowId = generateSafeUUID();
+    }
+
+    return {
+      id: rowId,
+      contract_id: contractId,
+      code: p.code.trim(),
+      workplace: p.workplace.trim() || `Posto ${p.code.trim()}`,
+      city: p.city.trim(),
+      role_name: p.role_name?.trim() || "Servente de Limpeza",
+      required_qty: p.required_qty && p.required_qty > 0 ? Number(p.required_qty) : 1,
+      active: p.active ?? true,
+      start_time: "08:00",
+      end_time: "17:00",
+      break_start: "12:00",
+      break_end: "13:00",
+      shift: "Diurno",
+      day_value: 0,
+      hour_value: 0,
+    };
+  });
 
   // Save metadata to localStorage first as safety backup
   try {

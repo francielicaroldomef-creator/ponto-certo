@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Sparkles } from "lucide-react";
+import { Plus, Sparkles, Clock, TrendingUp, AlertCircle, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { loadPeriod, errMsg, type DayRow } from "@/lib/data";
 import {
@@ -19,6 +19,7 @@ import { ContractSelect, DataTable, Field, PageHeader, Pill, useDefaultContract,
 import { DatePicker } from "@/components/date-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -60,52 +61,212 @@ function Coberturas() {
     const { error } = await supabase.from("coverages").update(patch).eq("id", id);
     if (error) toast.error(errMsg(error)); else refresh();
   };
+
   const openNeeds = (data?.rows ?? []).filter((r) => r.result.uncoveredMin > 0);
+
+  // Dashboard: coverage statistics for the selected period
+  const coverageStats = useMemo(() => {
+    const allCoverages = data?.coverages ?? [];
+    const activeCoverages = allCoverages.filter((c: any) => c.status !== "cancelada");
+    const completed = activeCoverages.filter((c: any) => c.status === "realizada");
+    const confirmed = activeCoverages.filter((c: any) => c.status === "confirmada");
+    const totalCoveredMin = data?.totals?.coveredMin ?? 0;
+    const totalCostCents = data?.totals?.coverageCostCents ?? 0;
+    const pendingCoverages = (data?.rows ?? []).filter((r) => r.result.uncoveredMin > 0).length;
+
+    return {
+      total: activeCoverages.length,
+      completed: completed.length,
+      confirmed: confirmed.length,
+      coveredHours: (totalCoveredMin / 60).toFixed(1),
+      totalCostCents,
+      pendingCoverages,
+    };
+  }, [data]);
 
   return (
     <div>
-      <PageHeader title="Coberturas" description="Posto coberto não gera desconto do cliente; o valor da cobertura é despesa separada."
-        actions={<Button onClick={() => setOpen(true)}><Plus className="mr-2 h-4 w-4" />Nova cobertura</Button>} />
+      <PageHeader
+        title="Coberturas"
+        description="Posto coberto não gera desconto do cliente; o valor da cobertura é despesa separada."
+        actions={
+          <Button className="w-full sm:w-auto" onClick={() => setOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />Nova cobertura
+          </Button>
+        }
+      />
+
+      {/* Filtros */}
       <div className="mb-4 flex flex-col gap-2 sm:flex-row">
         <ContractSelect value={contract} onChange={setContract} />
         <DatePicker value={from} onChange={setFrom} label="De" />
         <DatePicker value={to} onChange={setTo} label="Até" />
       </div>
+
+      {/* Dashboard de Indicadores */}
+      {data && (
+        <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {/* Total de Coberturas */}
+          <Card className="border-border/60">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                <Users className="h-4 w-4 shrink-0" />
+                <span className="text-xs font-medium uppercase tracking-wide">Coberturas</span>
+              </div>
+              <p className="text-2xl font-bold">{coverageStats.total}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {coverageStats.completed} realizada(s) · {coverageStats.confirmed} confirmada(s)
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Horas Cobertas */}
+          <Card className="border-border/60">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                <Clock className="h-4 w-4 shrink-0" />
+                <span className="text-xs font-medium uppercase tracking-wide">Horas Cobertas</span>
+              </div>
+              <p className="text-2xl font-bold">{coverageStats.coveredHours}h</p>
+              <p className="text-xs text-muted-foreground mt-0.5">total no período</p>
+            </CardContent>
+          </Card>
+
+          {/* Custo com Diaristas */}
+          <Card className="border-border/60">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                <TrendingUp className="h-4 w-4 shrink-0" />
+                <span className="text-xs font-medium uppercase tracking-wide">Custo Diaristas</span>
+              </div>
+              <p className="text-2xl font-bold">
+                {isFinancial ? brl(coverageStats.totalCostCents) : <span className="text-base text-muted-foreground">🔒 Restrito</span>}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {isFinancial ? "despesa do período" : "requer perfil Financeiro/Admin"}
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Postos a Cobrir */}
+          <Card className={coverageStats.pendingCoverages > 0 ? "border-destructive/40 bg-destructive/5" : "border-border/60"}>
+            <CardContent className="p-4">
+              <div className={`flex items-center gap-2 mb-1 ${coverageStats.pendingCoverages > 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span className="text-xs font-medium uppercase tracking-wide">A Cobrir</span>
+              </div>
+              <p className={`text-2xl font-bold ${coverageStats.pendingCoverages > 0 ? "text-destructive" : ""}`}>
+                {coverageStats.pendingCoverages}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">posto(s)/dia descobertos</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Alerta de postos com horas descobertas */}
       {openNeeds.length > 0 && (
         <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm">
           <p className="font-medium text-destructive">{openNeeds.length} posto(s)/dia com horas descobertas no período</p>
-          <p className="text-muted-foreground">{openNeeds.slice(0, 6).map((r) => `${fmtDate(r.schedule.work_date)} ${r.post?.code} (${r.result.uncoveredIntervals.map(([a, b]) => `${minToHHMM(a)}–${minToHHMM(b)}`).join(", ")})`).join(" · ")}{openNeeds.length > 6 ? " …" : ""}</p>
+          <p className="text-muted-foreground">
+            {openNeeds.slice(0, 6).map((r) =>
+              `${fmtDate(r.schedule.work_date)} ${r.post?.code} (${r.result.uncoveredIntervals.map(([a, b]) => `${minToHHMM(a)}–${minToHHMM(b)}`).join(", ")})`
+            ).join(" · ")}{openNeeds.length > 6 ? " …" : ""}
+          </p>
         </div>
       )}
-      <DataTable rows={data?.coverages ?? []} rowKey={(c: any) => c.id}
+
+      {/* Tabela de coberturas */}
+      <DataTable
+        rows={data?.coverages ?? []}
+        rowKey={(c: any) => c.id}
         search={(c: any) => `${c.post?.code} ${c.day_worker?.name ?? ""} ${c.employee?.name ?? ""}`}
         cols={[
           { header: "Data", cell: (c: any) => fmtDate(c.work_date) },
           { header: "Posto", cell: (c: any) => c.post?.code },
-          { header: "Responsável", cell: (c: any) => <div><p>{c.day_worker?.name ?? c.employee?.name}</p><p className="text-xs text-muted-foreground">{c.coverer_type === "diarista" ? "Diarista" : "Funcionário"}</p></div> },
-          { header: "Horário", cell: (c: any) => `${hhmm(c.start_time)}–${hhmm(c.end_time)}${c.break_start ? ` (int. ${hhmm(c.break_start)}–${hhmm(c.break_end)})` : ""}` },
+          {
+            header: "Responsável",
+            cell: (c: any) => (
+              <div>
+                <p>{c.day_worker?.name ?? c.employee?.name}</p>
+                <p className="text-xs text-muted-foreground">{c.coverer_type === "diarista" ? "Diarista" : "Funcionário"}</p>
+              </div>
+            ),
+          },
+          {
+            header: "Horário",
+            cell: (c: any) =>
+              `${hhmm(c.start_time)}–${hhmm(c.end_time)}${c.break_start ? ` (int. ${hhmm(c.break_start)}–${hhmm(c.break_end)})` : ""}`,
+          },
           { header: "Horas", cell: (c: any) => hours(total(coverageIntervals(c))) },
-          { header: "Valor", cell: (c: any) => isFinancial ? <span className="num">{brlValue(c.agreed_value)}</span> : <span className="text-muted-foreground text-xs">🔒 Restrito</span> },
-          { header: "Situação", cell: (c: any) => (
-            <Select value={c.status} onValueChange={(v) => update(c.id, { status: v })}>
-              <SelectTrigger className="h-8 w-36"><Pill tone={covTone(c.status)}>{COV_LABEL[c.status]}</Pill></SelectTrigger>
-              <SelectContent>{Object.entries(COV_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
-            </Select>
-          ) },
-          { header: "Pagamento", cell: (c: any) => isFinancial ? (
-            <Button size="sm" variant="outline" onClick={() => update(c.id, { payment_status: c.payment_status === "pago" ? "pendente" : "pago" })}>
-              <Pill tone={c.payment_status === "pago" ? "success" : "warning"}>{c.payment_status === "pago" ? "Pago" : "Pendente"}</Pill>
-            </Button>
-          ) : (
-            <Pill tone={c.payment_status === "pago" ? "success" : "warning"}>{c.payment_status === "pago" ? "Pago" : "Pendente"}</Pill>
-          ) },
-        ]} />
-      {open && <NewCoverage contract={contract} rows={data?.rows ?? []} isFinancial={isFinancial} onClose={() => setOpen(false)} onSaved={() => { setOpen(false); refresh(); }} />}
+          {
+            header: "Valor",
+            cell: (c: any) =>
+              isFinancial
+                ? <span className="num">{brlValue(c.agreed_value)}</span>
+                : <span className="text-muted-foreground text-xs">🔒 Restrito</span>,
+          },
+          {
+            header: "Situação",
+            cell: (c: any) => (
+              <Select value={c.status} onValueChange={(v) => update(c.id, { status: v })}>
+                <SelectTrigger className="h-8 w-36">
+                  <Pill tone={covTone(c.status)}>{COV_LABEL[c.status]}</Pill>
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(COV_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            ),
+          },
+          {
+            header: "Pagamento",
+            cell: (c: any) =>
+              isFinancial ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => update(c.id, { payment_status: c.payment_status === "pago" ? "pendente" : "pago" })}
+                >
+                  <Pill tone={c.payment_status === "pago" ? "success" : "warning"}>
+                    {c.payment_status === "pago" ? "Pago" : "Pendente"}
+                  </Pill>
+                </Button>
+              ) : (
+                <Pill tone={c.payment_status === "pago" ? "success" : "warning"}>
+                  {c.payment_status === "pago" ? "Pago" : "Pendente"}
+                </Pill>
+              ),
+          },
+        ]}
+      />
+
+      {open && (
+        <NewCoverage
+          contract={contract}
+          rows={data?.rows ?? []}
+          isFinancial={isFinancial}
+          onClose={() => setOpen(false)}
+          onSaved={() => { setOpen(false); refresh(); }}
+        />
+      )}
     </div>
   );
 }
 
-function NewCoverage({ contract, rows, isFinancial, onClose, onSaved }: { contract: string; rows: DayRow[]; isFinancial: boolean; onClose: () => void; onSaved: () => void }) {
+function NewCoverage({
+  contract,
+  rows,
+  isFinancial,
+  onClose,
+  onSaved,
+}: {
+  contract: string;
+  rows: DayRow[];
+  isFinancial: boolean;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
   const needs = rows.filter((r) => r.result.needMin > 0);
   const [needId, setNeedId] = useState(needs.find((r) => r.result.uncoveredMin > 0)?.schedule.id ?? "");
   const need = needs.find((r) => r.schedule.id === needId);
@@ -124,7 +285,11 @@ function NewCoverage({ contract, rows, isFinancial, onClose, onSaved }: { contra
   const [value, setValue] = useState("");
   const [status, setStatus] = useState("realizada");
   const [busy, setBusy] = useState(false);
-  const [conflictDialog, setConflictDialog] = useState<{ open: boolean; conflicts: ConflictingRecordInfo[]; execute: () => Promise<void> } | null>(null);
+  const [conflictDialog, setConflictDialog] = useState<{
+    open: boolean;
+    conflicts: ConflictingRecordInfo[];
+    execute: () => Promise<void>;
+  } | null>(null);
 
   // Auto-fill times when selecting an occurrence
   useEffect(() => {
@@ -144,21 +309,48 @@ function NewCoverage({ contract, rows, isFinancial, onClose, onSaved }: { contra
     }
   };
 
-  const { data: dws } = useQuery({ queryKey: ["dws-active"], queryFn: async () => (await supabase.from("day_workers").select("*").eq("status", "ativo").order("code")).data ?? [] });
-  const { data: emps } = useQuery({ queryKey: ["emps-active"], queryFn: async () => (await supabase.from("employees").select("id, registration, name").eq("status", "ativo").order("registration")).data ?? [] });
+  const { data: dws } = useQuery({
+    queryKey: ["dws-active"],
+    queryFn: async () => (await supabase.from("day_workers").select("*").eq("status", "ativo").order("code")).data ?? [],
+  });
+  const { data: emps } = useQuery({
+    queryKey: ["emps-active"],
+    queryFn: async () => (await supabase.from("employees").select("id, registration, name").eq("status", "ativo").order("registration")).data ?? [],
+  });
 
   const useBreak = toMinSafe(bs) > toMinSafe(start) && toMinSafe(be) < toMinSafe(end);
-  const minutes = total(coverageIntervals({ start_time: start, end_time: end, break_start: useBreak ? bs : null, break_end: useBreak ? be : null, status: "", agreed_value: 0 }));
+  const minutes = total(
+    coverageIntervals({
+      start_time: start,
+      end_time: end,
+      break_start: useBreak ? bs : null,
+      break_end: useBreak ? be : null,
+      status: "",
+      agreed_value: 0,
+    }),
+  );
   const dw = dws?.find((d: any) => d.id === person);
-  const suggested = useMemo(() => (type === "diarista" && dw ? suggestCoverageCents(minutes, need?.result.requiredMin ?? 480, dw.day_rate, dw.hour_rate) : 0), [type, dw, minutes, need]);
+  const suggested = useMemo(
+    () => (type === "diarista" && dw ? suggestCoverageCents(minutes, need?.result.requiredMin ?? 480, dw.day_rate, dw.hour_rate) : 0),
+    [type, dw, minutes, need],
+  );
 
   const executeInsert = async () => {
     if (!need) return;
     const { error } = await supabase.from("coverages").insert({
-      contract_id: contract, post_id: need.schedule.post_id, attendance_id: need.attendance?.id ?? null, work_date: need.schedule.work_date,
-      coverer_type: type, day_worker_id: type === "diarista" ? person : null, employee_id: type === "funcionario" ? person : null,
-      start_time: start, end_time: end, break_start: useBreak ? bs : null, break_end: useBreak ? be : null,
-      agreed_value: value !== "" ? Number(value.replace(",", ".")) : suggested / 100, status,
+      contract_id: contract,
+      post_id: need.schedule.post_id,
+      attendance_id: need.attendance?.id ?? null,
+      work_date: need.schedule.work_date,
+      coverer_type: type,
+      day_worker_id: type === "diarista" ? person : null,
+      employee_id: type === "funcionario" ? person : null,
+      start_time: start,
+      end_time: end,
+      break_start: useBreak ? bs : null,
+      break_end: useBreak ? be : null,
+      agreed_value: value !== "" ? Number(value.replace(",", ".")) : suggested / 100,
+      status,
     });
     if (error) throw error;
   };
@@ -214,17 +406,35 @@ function NewCoverage({ contract, rows, isFinancial, onClose, onSaved }: { contra
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle>Nova cobertura</DialogTitle></DialogHeader>
+      <DialogContent className="max-w-lg w-[95vw] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader>
+          <DialogTitle>Nova cobertura</DialogTitle>
+        </DialogHeader>
+
         <div className="grid gap-3">
+          {/* Seletor de Ocorrência */}
           <Field label="Ocorrência / posto a cobrir">
-            <Select value={needId} onValueChange={setNeedId}>
-              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-              <SelectContent>{needs.map((r) => <SelectItem key={r.schedule.id} value={r.schedule.id}>{fmtDate(r.schedule.work_date)} · {r.post?.code} · {r.employee?.registration} · {hours(r.result.uncoveredMin)} descob.</SelectItem>)}</SelectContent>
-            </Select>
+            {needs.length === 0 ? (
+              <div className="rounded-md border border-muted bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
+                Nenhum posto com horas descobertas encontrado no período selecionado.
+              </div>
+            ) : (
+              <Select value={needId} onValueChange={setNeedId}>
+                <SelectTrigger className="truncate text-left">
+                  <SelectValue placeholder="Selecione a ocorrência" />
+                </SelectTrigger>
+                <SelectContent>
+                  {needs.map((r) => (
+                    <SelectItem key={r.schedule.id} value={r.schedule.id}>
+                      {fmtDate(r.schedule.work_date)} · {r.post?.code} · {r.employee?.name || r.employee?.registration} ({hours(r.result.uncoveredMin)} a cobrir)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </Field>
 
-          {/* Visual shift timeline */}
+          {/* Timeline visual da jornada */}
           {need && (
             <ShiftTimeline
               schedule={need.schedule}
@@ -244,13 +454,22 @@ function NewCoverage({ contract, rows, isFinancial, onClose, onSaved }: { contra
             <Field label="Tipo">
               <Select value={type} onValueChange={(v) => { setType(v as any); setPerson(""); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="diarista">Diarista</SelectItem><SelectItem value="funcionario">Outro funcionário</SelectItem></SelectContent>
+                <SelectContent>
+                  <SelectItem value="diarista">Diarista</SelectItem>
+                  <SelectItem value="funcionario">Outro funcionário</SelectItem>
+                </SelectContent>
               </Select>
             </Field>
             <Field label="Pessoa">
               <Select value={person} onValueChange={setPerson}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>{(type === "diarista" ? dws ?? [] : emps ?? []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.code ?? p.registration} — {p.name}</SelectItem>)}</SelectContent>
+                <SelectTrigger className="truncate text-left"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {(type === "diarista" ? dws ?? [] : emps ?? []).map((p: any) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.code ?? p.registration} — {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </Field>
           </div>
@@ -270,24 +489,41 @@ function NewCoverage({ contract, rows, isFinancial, onClose, onSaved }: { contra
             <Field label="Int. início"><Input type="time" value={bs} onChange={(e) => setBs(e.target.value)} /></Field>
             <Field label="Int. fim"><Input type="time" value={be} onChange={(e) => setBe(e.target.value)} /></Field>
           </div>
-          <p className="text-xs text-muted-foreground">Horas cobertas: {hours(minutes)}{useBreak ? " (intervalo descontado)" : " (intervalo fora do período)"}.{isFinancial && suggested > 0 ? ` Valor sugerido: ${brl(suggested)}` : ""}</p>
+
+          <p className="text-xs text-muted-foreground">
+            Horas cobertas: {hours(minutes)}{useBreak ? " (intervalo descontado)" : " (intervalo fora do período)"}.
+            {isFinancial && suggested > 0 ? ` Valor sugerido: ${brl(suggested)}` : ""}
+          </p>
+
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Valor combinado (R$)"><Input inputMode="decimal" placeholder={isFinancial && suggested > 0 ? (suggested / 100).toFixed(2) : "0,00"} value={value} onChange={(e) => setValue(e.target.value)} /></Field>
+            <Field label="Valor combinado (R$)">
+              <Input
+                inputMode="decimal"
+                placeholder={isFinancial && suggested > 0 ? (suggested / 100).toFixed(2) : "0,00"}
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+              />
+            </Field>
             <Field label="Situação">
               <Select value={status} onValueChange={setStatus}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{Object.entries(COV_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                <SelectContent>
+                  {Object.entries(COV_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                </SelectContent>
               </Select>
             </Field>
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={save} disabled={busy}>{busy ? "Salvando…" : "Salvar"}</Button>
+
+        <DialogFooter className="flex-col-reverse gap-2 sm:flex-row">
+          <Button variant="outline" className="w-full sm:w-auto" onClick={onClose}>Cancelar</Button>
+          <Button className="w-full sm:w-auto" onClick={save} disabled={busy || needs.length === 0}>
+            {busy ? "Salvando…" : "Salvar"}
+          </Button>
         </DialogFooter>
       </DialogContent>
 
-      {/* 1-Click Conflict Replacement Confirmation Modal */}
+      {/* Modal de confirmação de substituição de conflito */}
       <AlertDialog open={!!conflictDialog?.open} onOpenChange={(o) => !o && setConflictDialog(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
