@@ -163,11 +163,11 @@ interface AuthFormProps {
 }
 
 function AuthForm({ onTripleClick, isMobile = false }: AuthFormProps) {
-  const [email, setEmail]           = useState("");
-  const [password, setPassword]     = useState("");
-  const [showPwd, setShowPwd]       = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPwd, setShowPwd] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const [busy, setBusy]             = useState(false);
+  const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
 
   // Recupera e-mail memorizado
@@ -175,7 +175,7 @@ function AuthForm({ onTripleClick, isMobile = false }: AuthFormProps) {
     try {
       const saved = localStorage.getItem("caroldo_remember_email");
       if (saved) { setEmail(saved); setRememberMe(true); }
-    } catch (_) {}
+    } catch (_) { }
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -186,8 +186,8 @@ function AuthForm({ onTripleClick, isMobile = false }: AuthFormProps) {
       if (error) throw error;
       try {
         if (rememberMe) localStorage.setItem("caroldo_remember_email", email);
-        else            localStorage.removeItem("caroldo_remember_email");
-      } catch (_) {}
+        else localStorage.removeItem("caroldo_remember_email");
+      } catch (_) { }
       toast.success("Bem-vindo de volta!");
       navigate({ to: "/painel" });
     } catch (err) {
@@ -206,7 +206,7 @@ function AuthForm({ onTripleClick, isMobile = false }: AuthFormProps) {
       {
         loading: "Enviando e-mail de recuperação...",
         success: "Link de recuperação enviado!",
-        error:   "Não foi possível enviar o e-mail de recuperação.",
+        error: "Não foi possível enviar o e-mail de recuperação.",
       },
     );
   };
@@ -248,16 +248,16 @@ function AuthForm({ onTripleClick, isMobile = false }: AuthFormProps) {
   function focusShell(el: HTMLDivElement | null) {
     if (!el) return;
     el.style.borderColor = "#ff8d43";
-    el.style.boxShadow   = "0 0 0 3px #ff760026";
+    el.style.boxShadow = "0 0 0 3px #ff760026";
   }
   function blurShell(el: HTMLDivElement | null) {
     if (!el) return;
     el.style.borderColor = "#6c6261";
-    el.style.boxShadow   = "none";
+    el.style.boxShadow = "none";
   }
 
   const emailShellRef = useRef<HTMLDivElement>(null);
-  const pwdShellRef   = useRef<HTMLDivElement>(null);
+  const pwdShellRef = useRef<HTMLDivElement>(null);
 
   return (
     <div style={{ width: "100%", color: "#fff", fontFamily: "Montserrat, sans-serif" }}>
@@ -799,7 +799,7 @@ function MobileScene({ onTripleClick }: { onTripleClick: () => void }) {
 // ---------------------------------------------------------------------------
 function AuthPage() {
   const [quickOpen, setQuickOpen] = useState(false);
-  const [isMobile, setIsMobile]   = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const scale = useSceneScale();
 
   const handleTripleClick = useTripleClick(() => setQuickOpen(true), 1200);
