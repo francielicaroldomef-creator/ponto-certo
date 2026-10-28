@@ -426,7 +426,7 @@ function AuthPage() {
                   src="/assets/logo-caroldo.png"
                   alt="Caroldo Prestação de Serviços Ltda"
                   className="cl-brand-logo-img"
-                  style={{ width: "138px", height: "auto", objectFit: "contain", display: "block" }}
+                  style={{ width: "165px", height: "auto", objectFit: "contain", display: "block" }}
                 />
 
                 <div className="cl-scripture-box">
@@ -666,28 +666,32 @@ function AuthPage() {
           transform: scale(1.02);
         }
 
+        /* ── NÍVEL 2: IDENTIDADE & MISSÃO (DESTAQUE ELEVADO) ── */
         .cl-scripture-box {
-          margin-top: 18px;
-          max-width: 440px;
+          margin-top: 20px;
+          max-width: 480px;
         }
 
         .cl-verse {
-          color: #f0f0f2;
-          font-size: 14.5px;
+          color: #ffffff;
+          font-size: 16.5px;
           font-style: italic;
-          font-weight: 400;
-          line-height: 1.5;
+          font-weight: 500;
+          line-height: 1.55;
+          letter-spacing: 0.15px;
+          text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
         }
 
         .cl-verse-author {
-          color: #8c8994;
-          font-size: 11px;
-          font-weight: 700;
-          letter-spacing: 0.28em;
+          color: #ff9b61;
+          font-size: 12px;
+          font-weight: 800;
+          letter-spacing: 0.32em;
           text-transform: uppercase;
-          margin-top: 6px;
+          margin-top: 7px;
         }
 
+        /* ── NÍVEL 1: PONTO FOCAL PRINCIPAL (H1 HERO) ── */
         .cl-hero-text {
           display: flex;
           flex-direction: column;
@@ -709,15 +713,16 @@ function AuthPage() {
           color: var(--cl-primary-orange);
         }
 
+        /* ── NÍVEL 4: SUBTÍTULO INSTITUCIONAL ── */
         .cl-subtitle {
-          color: #a3a1ab;
-          font-size: clamp(1rem, 1.4vw, 1.25rem);
+          color: #9a98a3;
+          font-size: 15px;
           font-weight: 400;
-          margin-top: 20px;
+          margin-top: 16px;
         }
 
         .cl-accent-bar {
-          margin-top: 24px;
+          margin-top: 22px;
           height: 4px;
           width: 72px;
           border-radius: 9999px;
@@ -735,9 +740,8 @@ function AuthPage() {
         .cl-auth-card {
           position: relative;
           width: 100%;
-          max-width: 580px;
-          min-height: 570px;
-          border-radius: 31px;
+          max-width: 540px;
+          border-radius: 28px;
           border: 1.5px solid var(--cl-border-card);
           background:
             radial-gradient(ellipse at 96% 0%, rgba(116, 47, 10, 0.22), transparent 55%),
@@ -746,7 +750,7 @@ function AuthPage() {
             0 16px 48px rgba(0, 0, 0, 0.75),
             inset 0 0 20px rgba(255, 107, 0, 0.08),
             0 0 45px rgba(255, 114, 0, 0.12);
-          padding: 48px 52px;
+          padding: 40px 44px;
           backdrop-filter: blur(28px);
           -webkit-backdrop-filter: blur(28px);
           isolation: isolate;
@@ -770,32 +774,34 @@ function AuthPage() {
           z-index: 1;
         }
 
+        /* ── NÍVEL 3: SAUDAÇÃO DO CARD (SUAVE E ACOLHEDOR) ── */
         .cl-card-title {
-          font-weight: 800;
-          letter-spacing: -1.2px;
-          line-height: 1.2;
-          margin-bottom: 34px;
-          font-size: clamp(26px, 2.5vw, 34px);
+          font-weight: 700;
+          letter-spacing: -0.6px;
+          line-height: 1.25;
+          margin-bottom: 24px;
+          font-size: clamp(20px, 1.8vw, 24px);
         }
 
         .cl-card-title span {
           display: block;
-          color: #ffffff;
+          color: #e4e2ea;
+          font-weight: 600;
         }
 
         .cl-card-title strong {
           display: block;
           color: var(--cl-primary-orange);
-          font-weight: 800;
-          letter-spacing: -1.2px;
-          margin-top: 2px;
+          font-weight: 700;
+          letter-spacing: -0.6px;
+          margin-top: 3px;
         }
 
-        /* ── FORMULÁRIO E CAMPOS ── */
+        /* ── NÍVEL 5: FORMULÁRIO FUNCIONAL (CAMPOS 50PX) ── */
         .cl-form {
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          gap: 16px;
         }
 
         .cl-field-block {
@@ -806,10 +812,10 @@ function AuthPage() {
 
         .cl-label {
           display: block;
-          font-size: 15px;
-          font-weight: 600;
-          color: #d6d5dc;
-          margin-bottom: 9px;
+          font-size: 13.5px;
+          font-weight: 500;
+          color: #c4c2cb;
+          margin-bottom: 7px;
           line-height: 1.2;
         }
 
@@ -817,9 +823,9 @@ function AuthPage() {
           position: relative;
           display: flex;
           align-items: center;
-          height: 60px;
-          border-radius: 14px;
-          border: 1px solid #5a5457;
+          height: 50px;
+          border-radius: 12px;
+          border: 1px solid #524d50;
           background: linear-gradient(100deg, rgba(35, 33, 36, 0.94), rgba(34, 34, 36, 0.90));
           transition: border-color 0.18s ease, box-shadow 0.18s ease;
         }
@@ -835,7 +841,7 @@ function AuthPage() {
 
         .cl-icon-box {
           position: absolute;
-          left: 18px;
+          left: 16px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -844,8 +850,8 @@ function AuthPage() {
         }
 
         .cl-input-icon {
-          width: 23px;
-          height: 23px;
+          width: 20px;
+          height: 20px;
           stroke: #ffffff;
         }
 
@@ -856,19 +862,19 @@ function AuthPage() {
           border: none;
           outline: none;
           color: #ffffff;
-          font-size: 15px;
+          font-size: 14.5px;
           font-family: inherit;
-          padding-left: 54px;
-          padding-right: 18px;
-          letter-spacing: -0.3px;
+          padding-left: 48px;
+          padding-right: 16px;
+          letter-spacing: -0.2px;
         }
 
         .cl-input-password {
-          padding-right: 52px;
+          padding-right: 48px;
         }
 
         .cl-input::placeholder {
-          color: #8c8994;
+          color: #83808b;
           opacity: 1;
         }
 
@@ -879,16 +885,16 @@ function AuthPage() {
 
         .cl-eye-btn {
           position: absolute;
-          right: 12px;
-          height: 42px;
-          width: 42px;
+          right: 8px;
+          height: 36px;
+          width: 36px;
           background: transparent;
           border: none;
           color: #a3a1ab;
           display: flex;
           align-items: center;
           justify-content: center;
-          border-radius: 10px;
+          border-radius: 8px;
           cursor: pointer;
           transition: color 0.15s ease, background 0.15s ease;
         }
@@ -899,15 +905,15 @@ function AuthPage() {
         }
 
         .cl-eye-icon {
-          width: 22px;
-          height: 22px;
+          width: 20px;
+          height: 20px;
         }
 
         .cl-error-msg {
-          font-size: 11.5px;
+          font-size: 11px;
           color: #ff9b85;
-          margin-top: 5px;
-          padding-left: 4px;
+          margin-top: 4px;
+          padding-left: 3px;
         }
 
         /* ── LINHA DE OPÇÕES (LEMBRAR E-MAIL E ESQUECI SENHA) ── */
@@ -915,26 +921,26 @@ function AuthPage() {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          font-size: 13.5px;
-          color: #c5c3cc;
-          margin-top: 4px;
-          margin-bottom: 8px;
+          font-size: 13px;
+          color: #bebcc5;
+          margin-top: 2px;
+          margin-bottom: 4px;
         }
 
         .cl-checkbox-label {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 9px;
           cursor: pointer;
           user-select: none;
         }
 
         .cl-checkbox {
           appearance: none;
-          width: 20px;
-          height: 20px;
-          border-radius: 5px;
-          border: 1.5px solid #827271;
+          width: 18px;
+          height: 18px;
+          border-radius: 4.5px;
+          border: 1.5px solid #7c6d6c;
           background: #141417;
           display: grid;
           place-content: center;
@@ -949,22 +955,22 @@ function AuthPage() {
 
         .cl-checkbox:checked::after {
           content: "";
-          width: 10px;
-          height: 6px;
+          width: 9px;
+          height: 5px;
           border: solid #ffffff;
-          border-width: 0 0 2.2px 2.2px;
-          transform: rotate(-45deg) translate(0, -1.5px);
+          border-width: 0 0 2px 2px;
+          transform: rotate(-45deg) translate(0, -1.2px);
         }
 
         .cl-link-forgot {
           background: none;
           border: none;
-          color: #a8a6b1;
-          font-size: 13.5px;
+          color: #a3a1ab;
+          font-size: 13px;
           font-family: inherit;
           cursor: pointer;
           transition: color 0.15s ease;
-          padding: 4px 0;
+          padding: 3px 0;
         }
 
         .cl-link-forgot:hover {
@@ -972,32 +978,32 @@ function AuthPage() {
           text-decoration: underline;
         }
 
-        /* ── BOTÃO DE SUBMIT CTA ── */
+        /* ── BOTÃO DE SUBMIT CTA (ALTURA HARMONIOSA) ── */
         .cl-submit-btn {
-          height: 68px;
+          height: 56px;
           width: 100%;
           border: none;
-          border-radius: 24px;
+          border-radius: 18px;
           background: linear-gradient(100deg, #ff8b00 0%, #ff5700 57%, #ff4705 100%);
-          box-shadow: 0 10px 28px rgba(250, 86, 0, 0.42), inset 0 1px 0 rgba(255, 178, 109, 0.45);
+          box-shadow: 0 10px 24px rgba(250, 86, 0, 0.38), inset 0 1px 0 rgba(255, 178, 109, 0.45);
           color: #ffffff;
-          font-size: 18.5px;
+          font-size: 16.5px;
           font-weight: 700;
-          letter-spacing: -0.4px;
+          letter-spacing: -0.3px;
           font-family: inherit;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 14px;
+          gap: 12px;
           cursor: pointer;
           transition: filter 0.18s ease, transform 0.15s ease, box-shadow 0.18s ease;
-          margin-top: 6px;
+          margin-top: 4px;
         }
 
         .cl-submit-btn:hover:not(:disabled) {
           filter: brightness(1.08);
-          transform: translateY(-1.5px);
-          box-shadow: 0 14px 34px rgba(250, 86, 0, 0.55), inset 0 1px 0 rgba(255, 178, 109, 0.55);
+          transform: translateY(-1px);
+          box-shadow: 0 12px 28px rgba(250, 86, 0, 0.48), inset 0 1px 0 rgba(255, 178, 109, 0.55);
         }
 
         .cl-submit-btn:active:not(:disabled) {
@@ -1011,8 +1017,8 @@ function AuthPage() {
         }
 
         .cl-btn-arrow {
-          width: 22px;
-          height: 22px;
+          width: 20px;
+          height: 20px;
           transition: transform 0.15s ease;
         }
 
@@ -1105,8 +1111,9 @@ function AuthPage() {
             gap: 12px;
           }
           .cl-submit-btn {
-            height: 60px;
-            font-size: 16.5px;
+            height: 52px;
+            font-size: 15.5px;
+            border-radius: 14px;
           }
         }
       `}</style>
