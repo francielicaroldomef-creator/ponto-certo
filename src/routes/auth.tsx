@@ -1,9 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { QuickAccessDialog, useTripleClick } from "@/components/quick-access-dialog";
-import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -20,102 +19,162 @@ export const Route = createFileRoute("/auth")({
 });
 
 // ---------------------------------------------------------------------------
-// Emblema circular da Caroldo
+// SVG Icons (inline, sem dependência de biblioteca)
 // ---------------------------------------------------------------------------
-function CaroldoLogo({ onTripleClick }: { onTripleClick: () => void }) {
+function IconEnvelope() {
   return (
-    <div
-      onClick={onTripleClick}
-      title="Portal Caroldo — clique 3× para acesso rápido"
-      className="cursor-pointer select-none transition-transform hover:scale-105 active:scale-95 flex flex-col items-start"
-    >
-      {/* Anel externo laranja */}
-      <div
-        className="relative w-28 h-28 rounded-full flex items-center justify-center"
-        style={{
-          background: "linear-gradient(135deg, #FF5500 0%, #CC3300 100%)",
-          boxShadow: "0 0 32px rgba(255,85,0,0.45), 0 8px 24px rgba(0,0,0,0.6)",
-        }}
-      >
-        {/* Anel interno preto que cria a borda de separação */}
-        <div className="w-[calc(100%-6px)] h-[calc(100%-6px)] rounded-full bg-black flex items-center justify-center">
-          {/* Área interna laranja */}
-          <div
-            className="w-[calc(100%-6px)] h-[calc(100%-6px)] rounded-full flex flex-col items-center justify-between py-2 px-1 overflow-hidden"
-            style={{ background: "linear-gradient(160deg, #FF5500 0%, #CC3300 100%)" }}
-          >
-            {/* Texto arco superior */}
-            <span
-              className="text-center leading-none font-black text-black uppercase"
-              style={{ fontSize: "6px", letterSpacing: "0.04em", lineHeight: 1.1 }}
-            >
-              CAROLDO PRESTAÇÃO DE SERVIÇOS LTDA
-            </span>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="4" width="20" height="16" rx="3" />
+      <polyline points="2,4 12,13 22,4" />
+    </svg>
+  );
+}
 
-            {/* Monograma central */}
-            <div className="relative flex items-center justify-center flex-1">
-              {/* Grande C cursivo branco */}
-              <span
-                className="text-white font-serif select-none leading-none"
-                style={{ fontSize: "52px", fontStyle: "italic", fontWeight: 900, lineHeight: 1, marginTop: "-4px" }}
-              >
-                C
-              </span>
-              {/* Sobreposição "Caroldo" em preto negrito */}
-              <span
-                className="absolute font-extrabold italic text-black uppercase tracking-tighter select-none"
-                style={{ fontSize: "10px", bottom: "4px", left: "50%", transform: "translateX(-50%)", whiteSpace: "nowrap" }}
-              >
-                Caroldo
-              </span>
-            </div>
+function IconLock() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+    </svg>
+  );
+}
 
-            {/* Texto arco inferior */}
-            <span
-              className="text-white font-bold uppercase tracking-widest leading-none"
-              style={{ fontSize: "7px", letterSpacing: "0.12em" }}
-            >
-              TRIUNFO - RS
-            </span>
-          </div>
-        </div>
-      </div>
+function IconEye({ off }: { off?: boolean }) {
+  if (off) {
+    return (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+        <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+        <line x1="1" y1="1" x2="23" y2="23" />
+      </svg>
+    );
+  }
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
 
-      {/* Citação Salmo 23 */}
-      <div className="mt-5">
-        <p className="text-white text-sm font-light italic tracking-wide leading-snug">
-          "O senhor é meu pastor, nada me faltará."
-        </p>
-        <p className="text-zinc-400 text-[11px] font-semibold tracking-[0.25em] uppercase mt-1">
-          SALMO 23
-        </p>
-      </div>
-    </div>
+function IconArrow() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="5" y1="12" x2="19" y2="12" />
+      <polyline points="12,5 19,12 12,19" />
+    </svg>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Página principal
+// Logo Caroldo SVG — emblema circular fiel ao original
 // ---------------------------------------------------------------------------
-function AuthPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [quickOpen, setQuickOpen] = useState(false);
+function CaroldoEmblem({ size = 120 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 120 120"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ flexShrink: 0 }}
+    >
+      {/* Anel laranja externo */}
+      <circle cx="60" cy="60" r="58" fill="url(#logoGrad)" />
+      {/* Anel preto separador */}
+      <circle cx="60" cy="60" r="53" fill="#000" />
+      {/* Fundo laranja interior */}
+      <circle cx="60" cy="60" r="48" fill="url(#logoGrad2)" />
 
-  const handleTripleClick = useTripleClick(() => setQuickOpen(true), 1200);
+      {/* Texto superior em arco */}
+      <defs>
+        <linearGradient id="logoGrad" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FF7020" />
+          <stop offset="100%" stopColor="#CC3300" />
+        </linearGradient>
+        <linearGradient id="logoGrad2" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FF6010" />
+          <stop offset="100%" stopColor="#C03000" />
+        </linearGradient>
+        <path id="arcTop" d="M 17,60 A 43,43 0 0 1 103,60" />
+        <path id="arcBot" d="M 22,70 A 38,38 0 0 0 98,70" />
+      </defs>
+      {/* Arco superior */}
+      <text fontSize="7.2" fontFamily="Arial Black, sans-serif" fontWeight="900" fill="#000" letterSpacing="0.5">
+        <textPath href="#arcTop" startOffset="50%" textAnchor="middle">
+          CAROLDO PRESTAÇÃO DE SERVIÇOS LTDA
+        </textPath>
+      </text>
+      {/* Grande C cursivo branco */}
+      <text
+        x="60" y="74"
+        textAnchor="middle"
+        fontSize="62"
+        fontFamily="Georgia, serif"
+        fontStyle="italic"
+        fontWeight="900"
+        fill="white"
+        opacity="0.95"
+      >C</text>
+      {/* Sobreposição "Caroldo" */}
+      <text
+        x="60" y="82"
+        textAnchor="middle"
+        fontSize="10.5"
+        fontFamily="Arial Black, sans-serif"
+        fontWeight="900"
+        fontStyle="italic"
+        fill="#000"
+        letterSpacing="-0.2"
+      >Caroldo</text>
+      {/* Arco inferior */}
+      <text fontSize="7.5" fontFamily="Arial Black, sans-serif" fontWeight="900" fill="white" letterSpacing="1.5">
+        <textPath href="#arcBot" startOffset="50%" textAnchor="middle">
+          TRIUNFO · RS
+        </textPath>
+      </text>
+    </svg>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Hook: escala proporcional 1672×941 → viewport
+// ---------------------------------------------------------------------------
+function useSceneScale() {
+  const [scale, setScale] = useState(1);
+  useEffect(() => {
+    function compute() {
+      const s = Math.min(window.innerWidth / 1672, window.innerHeight / 941);
+      setScale(Math.min(s, 1)); // nunca ampliar além de 100%
+    }
+    compute();
+    window.addEventListener("resize", compute);
+    return () => window.removeEventListener("resize", compute);
+  }, []);
+  return scale;
+}
+
+// ---------------------------------------------------------------------------
+// Formulário de autenticação — compartilhado entre desktop e mobile
+// ---------------------------------------------------------------------------
+interface AuthFormProps {
+  onTripleClick: () => void;
+  isMobile?: boolean;
+}
+
+function AuthForm({ onTripleClick, isMobile = false }: AuthFormProps) {
+  const [email, setEmail]           = useState("");
+  const [password, setPassword]     = useState("");
+  const [showPwd, setShowPwd]       = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [busy, setBusy]             = useState(false);
   const navigate = useNavigate();
 
   // Recupera e-mail memorizado
   useEffect(() => {
     try {
       const saved = localStorage.getItem("caroldo_remember_email");
-      if (saved) {
-        setEmail(saved);
-        setRememberMe(true);
-      }
+      if (saved) { setEmail(saved); setRememberMe(true); }
     } catch (_) {}
   }, []);
 
@@ -125,15 +184,10 @@ function AuthPage() {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-
       try {
-        if (rememberMe) {
-          localStorage.setItem("caroldo_remember_email", email);
-        } else {
-          localStorage.removeItem("caroldo_remember_email");
-        }
+        if (rememberMe) localStorage.setItem("caroldo_remember_email", email);
+        else            localStorage.removeItem("caroldo_remember_email");
       } catch (_) {}
-
       toast.success("Bem-vindo de volta!");
       navigate({ to: "/painel" });
     } catch (err) {
@@ -144,373 +198,651 @@ function AuthPage() {
   };
 
   const handleForgotPassword = () => {
-    if (!email) {
-      toast.info("Digite seu e-mail corporativo no campo acima primeiro.");
-      return;
-    }
+    if (!email) { toast.info("Digite seu e-mail corporativo no campo acima primeiro."); return; }
     toast.promise(
       supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth?reset=true`,
       }),
       {
         loading: "Enviando e-mail de recuperação...",
-        success: "Link de recuperação enviado para o seu e-mail corporativo!",
-        error: "Não foi possível enviar o e-mail de recuperação.",
-      }
+        success: "Link de recuperação enviado!",
+        error:   "Não foi possível enviar o e-mail de recuperação.",
+      },
     );
   };
 
+  // Estilos dos campos
+  const fieldShell: React.CSSProperties = {
+    position: "relative",
+    height: "60px",
+    borderRadius: "14px",
+    border: "1px solid #6c6261",
+    background: "linear-gradient(100deg, #232124ed, #222224e3)",
+    display: "flex",
+    alignItems: "center",
+    transition: "border-color 0.15s, box-shadow 0.15s",
+  };
+
+  const inputBase: React.CSSProperties = {
+    flex: 1,
+    height: "100%",
+    background: "transparent",
+    border: "none",
+    outline: "none",
+    color: "#fff",
+    fontSize: "15px",
+    fontFamily: "Montserrat, sans-serif",
+    paddingLeft: "48px",
+    paddingRight: "44px",
+  };
+
+  const iconSlot: React.CSSProperties = {
+    position: "absolute",
+    left: "16px",
+    color: "#a09090",
+    display: "flex",
+    alignItems: "center",
+    pointerEvents: "none",
+  };
+
+  function focusShell(el: HTMLDivElement | null) {
+    if (!el) return;
+    el.style.borderColor = "#ff8d43";
+    el.style.boxShadow   = "0 0 0 3px #ff760026";
+  }
+  function blurShell(el: HTMLDivElement | null) {
+    if (!el) return;
+    el.style.borderColor = "#6c6261";
+    el.style.boxShadow   = "none";
+  }
+
+  const emailShellRef = useRef<HTMLDivElement>(null);
+  const pwdShellRef   = useRef<HTMLDivElement>(null);
+
+  return (
+    <div style={{ width: "100%", color: "#fff", fontFamily: "Montserrat, sans-serif" }}>
+      {/* Título do card */}
+      <h2
+        style={{
+          fontSize: isMobile ? "22px" : "24px",
+          fontWeight: 800,
+          lineHeight: 1.3,
+          marginBottom: "28px",
+          color: "#fff",
+        }}
+      >
+        Comece seu dia com{" "}
+        <span style={{ color: "#ff8d43" }}>fé, trabalho e compromisso.</span>
+      </h2>
+
+      <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+
+        {/* E-mail */}
+        <div>
+          <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#ccc", marginBottom: "8px" }}>
+            E-mail corporativo
+          </label>
+          <div
+            ref={emailShellRef}
+            style={fieldShell}
+          >
+            <span style={iconSlot}><IconEnvelope /></span>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+              placeholder="seuemail@caroldo.com.br"
+              style={{ ...inputBase, paddingLeft: "50px" }}
+              onFocus={() => focusShell(emailShellRef.current)}
+              onBlur={() => blurShell(emailShellRef.current)}
+            />
+          </div>
+        </div>
+
+        {/* Senha */}
+        <div>
+          <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#ccc", marginBottom: "8px" }}>
+            Senha
+          </label>
+          <div
+            ref={pwdShellRef}
+            style={fieldShell}
+          >
+            <span style={iconSlot}><IconLock /></span>
+            <input
+              type={showPwd ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+              autoComplete="current-password"
+              placeholder="••••••••••"
+              style={{ ...inputBase, paddingRight: "52px" }}
+              onFocus={() => focusShell(pwdShellRef.current)}
+              onBlur={() => blurShell(pwdShellRef.current)}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPwd((v) => !v)}
+              tabIndex={-1}
+              aria-label={showPwd ? "Ocultar senha" : "Mostrar senha"}
+              style={{
+                position: "absolute",
+                right: "14px",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "#a09090",
+                display: "flex",
+                alignItems: "center",
+                padding: "4px",
+                borderRadius: "6px",
+                transition: "color 0.15s",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "#fff")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "#a09090")}
+            >
+              <IconEye off={showPwd} />
+            </button>
+          </div>
+        </div>
+
+        {/* Lembrar + Esqueci */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "13px" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", color: "#d0cece", userSelect: "none" }}>
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              style={{ accentColor: "#ff6b00", width: "16px", height: "16px", cursor: "pointer" }}
+            />
+            Lembrar meu e-mail
+          </label>
+          <button
+            type="button"
+            onClick={handleForgotPassword}
+            style={{
+              background: "none", border: "none", cursor: "pointer",
+              color: "#a09090", fontSize: "13px", fontFamily: "Montserrat, sans-serif",
+              textDecoration: "none", padding: 0, transition: "color 0.15s",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.textDecoration = "underline"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = "#a09090"; e.currentTarget.style.textDecoration = "none"; }}
+          >
+            Esqueci minha senha
+          </button>
+        </div>
+
+        {/* CTA */}
+        <button
+          type="submit"
+          disabled={busy}
+          style={{
+            height: "69px",
+            borderRadius: "26px",
+            border: "none",
+            cursor: busy ? "not-allowed" : "pointer",
+            background: busy
+              ? "linear-gradient(100deg, #994400 0%, #772200 100%)"
+              : "linear-gradient(100deg, #ff8b00 0%, #ff5700 57%, #ff4e09 100%)",
+            boxShadow: busy ? "none" : "0 10px 27px #fa560052, inset 0 1px 0 #ffb26d60",
+            color: "#fff",
+            fontSize: "19px",
+            fontWeight: 700,
+            fontFamily: "Montserrat, sans-serif",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "10px",
+            opacity: busy ? 0.75 : 1,
+            transition: "background 0.15s, box-shadow 0.15s, transform 0.1s",
+            marginTop: "6px",
+            letterSpacing: "-0.2px",
+          }}
+          onMouseEnter={(e) => {
+            if (!busy) {
+              e.currentTarget.style.background = "linear-gradient(100deg, #ff9800 0%, #ff6200 57%, #ff5500 100%)";
+              e.currentTarget.style.boxShadow = "0 14px 36px #fa560075, inset 0 1px 0 #ffb26d60";
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!busy) {
+              e.currentTarget.style.background = "linear-gradient(100deg, #ff8b00 0%, #ff5700 57%, #ff4e09 100%)";
+              e.currentTarget.style.boxShadow = "0 10px 27px #fa560052, inset 0 1px 0 #ffb26d60";
+            }
+          }}
+          onMouseDown={(e) => { if (!busy) e.currentTarget.style.transform = "scale(0.98)"; }}
+          onMouseUp={(e) => { if (!busy) e.currentTarget.style.transform = "scale(1)"; }}
+        >
+          <span>{busy ? "Entrando..." : "Entrar na plataforma"}</span>
+          {!busy && <IconArrow />}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Cena Desktop — palco 1672×941 com imagem de referência + card posicionado
+// ---------------------------------------------------------------------------
+function DesktopScene({ scale, onTripleClick }: { scale: number; onTripleClick: () => void }) {
   return (
     <div
-      className="relative min-h-screen w-full text-white flex items-center justify-center p-4 lg:p-12 overflow-x-hidden font-sans"
       style={{
+        position: "fixed",
+        inset: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden",
         background: "#08090C",
-        // Seleção de texto com laranja
       }}
     >
-      {/* ── Camada de efeitos de iluminação ── */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
-        {/* Glow laranja superior direito */}
+      {/* Palco escalável */}
+      <div
+        style={{
+          position: "relative",
+          width: "1672px",
+          height: "941px",
+          transformOrigin: "center center",
+          transform: `scale(${scale})`,
+          flexShrink: 0,
+        }}
+      >
+        {/* ── Fundo principal: composição 3D com iluminação laranja ── */}
         <div
-          className="absolute rounded-full"
           style={{
-            top: "-160px",
-            right: "-160px",
-            width: "620px",
-            height: "620px",
-            background: "radial-gradient(circle, rgba(255,85,0,0.22) 0%, transparent 70%)",
-            filter: "blur(8px)",
+            position: "absolute",
+            inset: 0,
+            background: [
+              "radial-gradient(ellipse 900px 600px at 70% 50%, rgba(180,60,0,0.28) 0%, transparent 65%)",
+              "radial-gradient(ellipse 600px 800px at 85% 20%, rgba(255,100,0,0.18) 0%, transparent 60%)",
+              "radial-gradient(ellipse 700px 400px at 50% 95%, rgba(255,85,0,0.13) 0%, transparent 70%)",
+              "linear-gradient(160deg, #0c0e12 0%, #0a0b0e 40%, #130d08 100%)",
+            ].join(", "),
           }}
         />
-        {/* Glow central (atrás do card) */}
+
+        {/* Anéis curvos 3D — coluna central/direita */}
+        {/* Anel grande diagonal laranja (superior) */}
         <div
-          className="absolute"
           style={{
+            position: "absolute",
+            top: "-180px",
+            right: "280px",
+            width: "780px",
+            height: "780px",
+            borderRadius: "50%",
+            border: "78px solid transparent",
+            background: "transparent",
+            boxShadow: "0 0 0 0px transparent",
+            backgroundImage: "none",
+            borderColor: "transparent",
+            outline: "none",
+            // Anel real via box-shadow e clip
+            boxSizing: "border-box",
+          }}
+        >
+          <div style={{
+            position: "absolute",
+            inset: 0,
+            borderRadius: "50%",
+            border: "78px solid",
+            borderColor: "rgba(200,65,0,0.75)",
+            transform: "rotate(-18deg) scaleX(0.72)",
+            filter: "blur(0.5px)",
+            boxShadow: "0 0 60px rgba(255,85,0,0.35), inset 0 0 40px rgba(255,85,0,0.12)",
+          }} />
+        </div>
+        {/* Anel médio laranja escuro (atrás do principal) */}
+        <div style={{
+          position: "absolute",
+          top: "60px",
+          right: "120px",
+          width: "640px",
+          height: "640px",
+          borderRadius: "50%",
+          border: "58px solid rgba(140,40,0,0.55)",
+          transform: "rotate(10deg) scaleX(0.65)",
+          filter: "blur(1px)",
+          boxShadow: "inset 0 0 30px rgba(255,80,0,0.10)",
+        }} />
+        {/* Anel pequeno laranja brilhante (primeiro plano) */}
+        <div style={{
+          position: "absolute",
+          top: "220px",
+          right: "200px",
+          width: "460px",
+          height: "460px",
+          borderRadius: "50%",
+          border: "48px solid rgba(255,80,0,0.60)",
+          transform: "rotate(-30deg) scaleX(0.58) scaleY(1.1)",
+          filter: "blur(0.3px)",
+          boxShadow: "0 0 80px rgba(255,85,0,0.40), inset 0 0 20px rgba(255,100,0,0.10)",
+        }} />
+        {/* Anel escuro traseiro (profundidade) */}
+        <div style={{
+          position: "absolute",
+          top: "-80px",
+          right: "500px",
+          width: "860px",
+          height: "860px",
+          borderRadius: "50%",
+          border: "70px solid rgba(50,20,5,0.45)",
+          transform: "rotate(5deg) scaleX(0.8)",
+          filter: "blur(2px)",
+        }} />
+
+        {/* Reflexo de piso laranja */}
+        <div style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: "180px",
+          background: "linear-gradient(to top, rgba(255,70,0,0.12), rgba(255,70,0,0.04), transparent)",
+        }} />
+        <div style={{
+          position: "absolute",
+          bottom: "40px",
+          left: "10%",
+          right: "10%",
+          height: "1px",
+          background: "linear-gradient(to right, transparent, rgba(255,85,0,0.65), transparent)",
+          filter: "blur(1px)",
+        }} />
+
+        {/* Glow difuso esquerdo (área de branding) */}
+        <div style={{
+          position: "absolute",
+          top: "50%",
+          left: "60px",
+          transform: "translateY(-50%)",
+          width: "500px",
+          height: "500px",
+          borderRadius: "50%",
+          background: "radial-gradient(ellipse, rgba(255,85,0,0.07) 0%, transparent 70%)",
+          filter: "blur(8px)",
+        }} />
+
+        {/* ── Coluna esquerda: branding ── */}
+        <div
+          style={{
+            position: "absolute",
+            left: "92px",
             top: "50%",
-            right: "20%",
             transform: "translateY(-50%)",
-            width: "480px",
-            height: "480px",
-            borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(255,85,0,0.14) 0%, transparent 70%)",
-            filter: "blur(10px)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "32px",
           }}
-        />
-        {/* Anéis esculturais 3D — simulados com gradientes curvos */}
-        <div
-          className="absolute"
-          style={{
-            top: "10%",
-            right: "5%",
-            width: "500px",
-            height: "500px",
-            borderRadius: "50%",
-            border: "60px solid transparent",
-            backgroundImage: "radial-gradient(ellipse at 50% 50%, rgba(255,85,0,0.18) 0%, transparent 70%)",
-            transform: "rotate(-20deg) scaleX(0.55)",
-            filter: "blur(2px)",
-          }}
-        />
-        {/* Reflexo no chão — linha laranja */}
-        <div
-          className="absolute bottom-0 left-0 right-0"
-          style={{
-            height: "140px",
-            background: "linear-gradient(to top, rgba(255,85,0,0.10), rgba(255,85,0,0.04), transparent)",
-          }}
-        />
-        <div
-          className="absolute"
-          style={{
-            bottom: "32px",
-            left: "20%",
-            right: "20%",
-            height: "1px",
-            background: "linear-gradient(to right, transparent, rgba(255,85,0,0.55), transparent)",
-            filter: "blur(1px)",
-          }}
-        />
-        {/* Glow sutil esquerdo (área do branding) */}
-        <div
-          className="absolute rounded-full"
-          style={{
-            bottom: "10%",
-            left: "-80px",
-            width: "360px",
-            height: "240px",
-            background: "radial-gradient(ellipse, rgba(255,85,0,0.08) 0%, transparent 70%)",
-            filter: "blur(6px)",
-          }}
-        />
-      </div>
-
-      {/* ── Grid de conteúdo ── */}
-      <div className="relative z-10 w-full max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-center">
-
-        {/* ═══════════════════════════════════════
-            COLUNA ESQUERDA — Branding & Headline
-            ═══════════════════════════════════════ */}
-        <div className="lg:col-span-7 flex flex-col justify-center space-y-8">
+        >
           {/* Logo com clique triplo */}
-          <CaroldoLogo onTripleClick={handleTripleClick} />
+          <div
+            onClick={onTripleClick}
+            title="Portal Caroldo — clique 3× para acesso rápido"
+            style={{ cursor: "pointer", display: "inline-block", transition: "transform 0.2s" }}
+            onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.04)")}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+          >
+            <CaroldoEmblem size={148} />
+            {/* Citação Salmo 23 */}
+            <div style={{ marginTop: "16px", maxWidth: "380px" }}>
+              <p style={{ color: "#e8e8e8", fontSize: "14px", fontStyle: "italic", fontWeight: 400, fontFamily: "Montserrat, sans-serif", lineHeight: 1.5, margin: 0 }}>
+                "O senhor é meu pastor, nada me faltará."
+              </p>
+              <p style={{ color: "#7a7070", fontSize: "11px", fontWeight: 700, letterSpacing: "0.24em", textTransform: "uppercase", fontFamily: "Montserrat, sans-serif", marginTop: "6px" }}>
+                SALMO 23
+              </p>
+            </div>
+          </div>
 
-          {/* Hero Headline */}
-          <div className="space-y-1">
+          {/* Hero headline */}
+          <div>
             <h1
-              className="leading-[1.05] tracking-tight text-white"
-              style={{ fontSize: "clamp(2.8rem, 5vw, 5rem)", fontWeight: 900 }}
+              style={{
+                fontSize: "88px",
+                fontWeight: 900,
+                lineHeight: 1.0,
+                margin: 0,
+                color: "#fff",
+                fontFamily: "Montserrat, sans-serif",
+                letterSpacing: "-2px",
+              }}
             >
-              Gestão que <br />
-              <span style={{ color: "#FF5500" }}>impulsiona</span> <br />
+              Gestão que<br />
+              <span style={{ color: "#FF5500" }}>impulsiona</span><br />
               resultados<span style={{ color: "#FF5500" }}>.</span>
             </h1>
-            <p className="text-zinc-400 text-base sm:text-lg font-normal pt-2">
+            <p style={{
+              color: "#9a9090",
+              fontSize: "18px",
+              fontFamily: "Montserrat, sans-serif",
+              fontWeight: 400,
+              marginTop: "16px",
+              marginBottom: 0,
+            }}>
               Sistema integrado de gestão da Caroldo.
             </p>
-            {/* Barra de acento laranja */}
-            <div
-              className="rounded-full mt-4"
-              style={{ height: "4px", width: "64px", background: "#FF5500" }}
-            />
+            {/* Barra de acento */}
+            <div style={{
+              marginTop: "20px",
+              height: "4px",
+              width: "72px",
+              borderRadius: "9999px",
+              background: "#FF5500",
+            }} />
           </div>
         </div>
 
-        {/* ═══════════════════════════════════════
-            COLUNA DIREITA — Card Glassmorphism
-            ═══════════════════════════════════════ */}
-        <div className="lg:col-span-5 flex justify-center lg:justify-end">
-          <div
-            className="w-full relative overflow-hidden"
-            style={{
-              maxWidth: "448px",
-              borderRadius: "28px",
-              padding: "40px",
-              background: "rgba(14, 15, 20, 0.72)",
-              backdropFilter: "blur(24px)",
-              WebkitBackdropFilter: "blur(24px)",
-              border: "1px solid rgba(255,255,255,0.10)",
-              boxShadow: "0 32px 80px rgba(0,0,0,0.75), inset 0 1px 0 rgba(255,255,255,0.06)",
-            }}
-          >
-            {/* Brilho sutil superior-direito do card */}
-            <div
-              className="absolute pointer-events-none"
-              aria-hidden="true"
-              style={{
-                top: "-40px",
-                right: "-40px",
-                width: "200px",
-                height: "200px",
-                borderRadius: "50%",
-                background: "rgba(255,85,0,0.12)",
-                filter: "blur(40px)",
-              }}
-            />
-
-            {/* Título do card */}
-            <div className="mb-7 relative z-10">
-              <h2 className="text-2xl font-bold leading-snug text-white">
-                Comece seu dia com <br />
-                <span style={{ color: "#FF5500" }}>fé, trabalho e compromisso.</span>
-              </h2>
-            </div>
-
-            {/* Formulário */}
-            <form onSubmit={handleLogin} className="space-y-5 relative z-10">
-
-              {/* ── Campo E-mail ── */}
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="caroldo-email"
-                  className="block text-sm font-medium"
-                  style={{ color: "#E4E4E7" }}
-                >
-                  E-mail corporativo
-                </label>
-                <div className="relative">
-                  <span
-                    className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none"
-                    style={{ color: "#71717A" }}
-                  >
-                    <Mail className="w-[18px] h-[18px]" />
-                  </span>
-                  <input
-                    id="caroldo-email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    autoComplete="email"
-                    placeholder="seuemail@caroldo.com.br"
-                    style={{
-                      width: "100%",
-                      paddingLeft: "44px",
-                      paddingRight: "16px",
-                      paddingTop: "12px",
-                      paddingBottom: "12px",
-                      borderRadius: "12px",
-                      background: "rgba(24, 24, 27, 0.80)",
-                      border: "1px solid rgba(63,63,70,0.70)",
-                      color: "#FFFFFF",
-                      fontSize: "14px",
-                      outline: "none",
-                      transition: "border-color 0.15s, box-shadow 0.15s",
-                    }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = "#FF5500";
-                      e.currentTarget.style.boxShadow = "0 0 0 1px #FF5500";
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = "rgba(63,63,70,0.70)";
-                      e.currentTarget.style.boxShadow = "none";
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* ── Campo Senha ── */}
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="caroldo-password"
-                  className="block text-sm font-medium"
-                  style={{ color: "#E4E4E7" }}
-                >
-                  Senha
-                </label>
-                <div className="relative">
-                  <span
-                    className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none"
-                    style={{ color: "#71717A" }}
-                  >
-                    <Lock className="w-[18px] h-[18px]" />
-                  </span>
-                  <input
-                    id="caroldo-password"
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    minLength={6}
-                    autoComplete="current-password"
-                    placeholder="••••••••••"
-                    style={{
-                      width: "100%",
-                      paddingLeft: "44px",
-                      paddingRight: "44px",
-                      paddingTop: "12px",
-                      paddingBottom: "12px",
-                      borderRadius: "12px",
-                      background: "rgba(24, 24, 27, 0.80)",
-                      border: "1px solid rgba(63,63,70,0.70)",
-                      color: "#FFFFFF",
-                      fontSize: "14px",
-                      outline: "none",
-                      transition: "border-color 0.15s, box-shadow 0.15s",
-                    }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = "#FF5500";
-                      e.currentTarget.style.boxShadow = "0 0 0 1px #FF5500";
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = "rgba(63,63,70,0.70)";
-                      e.currentTarget.style.boxShadow = "none";
-                    }}
-                  />
-                  {/* Toggle visibilidade de senha */}
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    tabIndex={-1}
-                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-                    className="absolute inset-y-0 right-0 flex items-center pr-3.5 transition-colors"
-                    style={{ color: "#71717A" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = "#FFFFFF")}
-                    onMouseLeave={(e) => (e.currentTarget.style.color = "#71717A")}
-                  >
-                    {showPassword
-                      ? <EyeOff className="w-[18px] h-[18px]" />
-                      : <Eye className="w-[18px] h-[18px]" />
-                    }
-                  </button>
-                </div>
-              </div>
-
-              {/* ── Lembrar e-mail + Esqueci senha ── */}
-              <div className="flex items-center justify-between pt-0.5" style={{ fontSize: "13px" }}>
-                <label
-                  className="flex items-center gap-2 cursor-pointer select-none transition-colors"
-                  style={{ color: "#D4D4D8" }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    style={{ accentColor: "#FF5500", width: "16px", height: "16px", cursor: "pointer" }}
-                  />
-                  <span>Lembrar meu e-mail</span>
-                </label>
-
-                <button
-                  type="button"
-                  onClick={handleForgotPassword}
-                  className="transition-colors"
-                  style={{ color: "#A1A1AA" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = "#FFFFFF")}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = "#A1A1AA")}
-                >
-                  Esqueci minha senha
-                </button>
-              </div>
-
-              {/* ── Botão CTA ── */}
-              <button
-                type="submit"
-                disabled={busy}
-                className="w-full flex items-center justify-center gap-2 font-semibold text-white transition-all"
-                style={{
-                  marginTop: "8px",
-                  padding: "14px 24px",
-                  borderRadius: "14px",
-                  background: busy ? "#994400" : "#FF5500",
-                  boxShadow: busy ? "none" : "0 8px 30px rgba(255,85,0,0.38), 0 2px 8px rgba(0,0,0,0.4)",
-                  fontSize: "15px",
-                  cursor: busy ? "not-allowed" : "pointer",
-                  opacity: busy ? 0.7 : 1,
-                  transform: "scale(1)",
-                  transition: "background 0.15s, box-shadow 0.15s, opacity 0.15s",
-                  border: "none",
-                }}
-                onMouseEnter={(e) => {
-                  if (!busy) {
-                    e.currentTarget.style.background = "#E64A00";
-                    e.currentTarget.style.boxShadow = "0 10px 36px rgba(255,85,0,0.50), 0 2px 8px rgba(0,0,0,0.4)";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!busy) {
-                    e.currentTarget.style.background = "#FF5500";
-                    e.currentTarget.style.boxShadow = "0 8px 30px rgba(255,85,0,0.38), 0 2px 8px rgba(0,0,0,0.4)";
-                  }
-                }}
-                onMouseDown={(e) => { if (!busy) e.currentTarget.style.transform = "scale(0.985)"; }}
-                onMouseUp={(e) => { if (!busy) e.currentTarget.style.transform = "scale(1)"; }}
-              >
-                <span>{busy ? "Entrando..." : "Entrar na plataforma"}</span>
-                {!busy && <ArrowRight className="w-[18px] h-[18px]" />}
-              </button>
-            </form>
-          </div>
+        {/* ── Card Interativo Desktop (pixel-perfect do spec) ── */}
+        <div
+          style={{
+            position: "absolute",
+            left: "949px",
+            top: "186px",
+            width: "595px",
+            minHeight: "578px",
+            borderRadius: "31px",
+            border: "1.5px solid #ff9b61",
+            background: [
+              "radial-gradient(ellipse at 96% 0%, rgba(116,47,10,.17), transparent 55%)",
+              "linear-gradient(130deg, #161617 0%, #0b0d0e 54%, #21110b 100%)",
+            ].join(", "),
+            boxShadow: "0 8px 28px #0008, inset 0 0 20px #ff6b0014, 0 0 40px #ff720013",
+            padding: "44px 44px 44px 44px",
+            boxSizing: "border-box",
+          }}
+        >
+          {/* Brilho glow superior-direito do card */}
+          <div style={{
+            position: "absolute",
+            top: "-60px",
+            right: "-60px",
+            width: "240px",
+            height: "240px",
+            borderRadius: "50%",
+            background: "rgba(255,90,0,0.15)",
+            filter: "blur(50px)",
+            pointerEvents: "none",
+          }} />
+          <AuthForm onTripleClick={onTripleClick} />
         </div>
       </div>
+    </div>
+  );
+}
 
-      {/* ── Modal de Acesso Rápido (clique triplo no logo) ── */}
+// ---------------------------------------------------------------------------
+// Cena Mobile — reflow vertical com anéis orgânicos
+// ---------------------------------------------------------------------------
+function MobileScene({ onTripleClick }: { onTripleClick: () => void }) {
+  return (
+    <div
+      style={{
+        minHeight: "100dvh",
+        background: "#0c0d10",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        overflowX: "hidden",
+        position: "relative",
+      }}
+    >
+      {/* Anel superior direito */}
+      <div style={{
+        position: "absolute",
+        top: "-160px",
+        right: "-160px",
+        width: "420px",
+        height: "420px",
+        borderRadius: "50%",
+        border: "68px solid #f76a0a",
+        transform: "rotate(35deg)",
+        opacity: 0.55,
+        pointerEvents: "none",
+      }} />
+      {/* Anel inferior esquerdo */}
+      <div style={{
+        position: "absolute",
+        bottom: "-140px",
+        left: "-140px",
+        width: "360px",
+        height: "360px",
+        borderRadius: "50%",
+        border: "63px solid #453e3b",
+        opacity: 0.65,
+        pointerEvents: "none",
+      }} />
+      {/* Reflexo de piso */}
+      <div style={{
+        position: "fixed",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: "100px",
+        background: "linear-gradient(to top, rgba(255,70,0,0.09), transparent)",
+        pointerEvents: "none",
+      }} />
+
+      {/* Header de branding */}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          paddingTop: "52px",
+          paddingBottom: "28px",
+          textAlign: "center",
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
+        <div
+          onClick={onTripleClick}
+          title="Portal Caroldo — clique 3× para acesso rápido"
+          style={{ cursor: "pointer" }}
+        >
+          <CaroldoEmblem size={120} />
+        </div>
+        <div style={{ marginTop: "14px" }}>
+          <p style={{ color: "#ddd", fontSize: "13px", fontStyle: "italic", fontFamily: "Montserrat, sans-serif", margin: 0, lineHeight: 1.5 }}>
+            "O senhor é meu pastor, nada me faltará."
+          </p>
+          <p style={{ color: "#6a6060", fontSize: "10px", fontWeight: 700, letterSpacing: "0.24em", textTransform: "uppercase", fontFamily: "Montserrat, sans-serif", marginTop: "5px" }}>
+            SALMO 23
+          </p>
+        </div>
+        <h1
+          style={{
+            fontSize: "30px",
+            fontWeight: 900,
+            color: "#fff",
+            fontFamily: "Montserrat, sans-serif",
+            marginTop: "20px",
+            marginBottom: 0,
+            lineHeight: 1.15,
+            letterSpacing: "-0.5px",
+          }}
+        >
+          Gestão que{" "}
+          <span style={{ color: "#FF5500" }}>impulsiona</span>{" "}
+          resultados<span style={{ color: "#FF5500" }}>.</span>
+        </h1>
+      </div>
+
+      {/* Card mobile */}
+      <div
+        style={{
+          width: "min(480px, calc(100vw - 24px))",
+          borderRadius: "28px",
+          border: "1.5px solid rgba(255,140,80,0.35)",
+          background: "linear-gradient(130deg, #161617 0%, #0b0d0e 54%, #1e1008 100%)",
+          boxShadow: "0 8px 40px rgba(0,0,0,0.65), inset 0 0 20px rgba(255,90,0,0.06)",
+          padding: "32px 24px",
+          boxSizing: "border-box",
+          marginBottom: "40px",
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
+        <AuthForm onTripleClick={onTripleClick} isMobile />
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Página principal — orquestra desktop vs mobile
+// ---------------------------------------------------------------------------
+function AuthPage() {
+  const [quickOpen, setQuickOpen] = useState(false);
+  const [isMobile, setIsMobile]   = useState(false);
+  const scale = useSceneScale();
+
+  const handleTripleClick = useTripleClick(() => setQuickOpen(true), 1200);
+
+  useEffect(() => {
+    function check() { setIsMobile(window.innerWidth < 900); }
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  return (
+    <>
+      {/* Google Fonts — Montserrat */}
+      <link
+        rel="preconnect"
+        href="https://fonts.googleapis.com"
+      />
+      <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossOrigin=""
+      />
+      <link
+        href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap"
+        rel="stylesheet"
+      />
+
+      {isMobile
+        ? <MobileScene onTripleClick={handleTripleClick} />
+        : <DesktopScene scale={scale} onTripleClick={handleTripleClick} />
+      }
+
       <QuickAccessDialog open={quickOpen} onOpenChange={setQuickOpen} />
 
-      {/* Hack global de selection color via style tag inline */}
       <style>{`
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 0; overflow-x: hidden; }
         ::selection { background: #FF5500; color: #fff; }
         input::placeholder { color: #52525B; }
+        input[type="password"]::-ms-reveal,
+        input[type="password"]::-webkit-credentials-auto-fill-button { display: none; }
       `}</style>
-    </div>
+    </>
   );
 }
