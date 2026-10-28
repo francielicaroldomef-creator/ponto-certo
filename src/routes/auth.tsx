@@ -1,14 +1,15 @@
 /**
  * auth.tsx — Login Corporativo Caroldo
  *
- * Layout fiel ao pacote caroldo-login-frontend:
- *   • Desktop: palco 1672×941 com `referencia-desktop.png` como arte-base +
- *              card interativo posicionado em pixel-perfect (left:949 top:186)
- *   • Mobile:  reflow vertical com anéis orgânicos + `logo-caroldo.png`
- *
- * CSS idêntico ao styles.css do pacote — apenas adaptado para <style> inline
- * (sem classe global para não vazar ao resto do app).
- * Autenticação real via Supabase; clique-triplo → QuickAccessDialog.
+ * Interface 100% responsiva para PC (Full HD, 2K, 4K, notebooks e laptops)
+ * e dispositivos móveis, com a identidade visual completa:
+ *   • Lado Esquerdo: Logo oficial Caroldo, Salmo 23, headline com tipografia de impacto
+ *     e barra de acento neon.
+ *   • Lado Direito: Card translúcido em vidro escuro (glassmorphism), bordas brilhantes
+ *     sutis (#ff9b61), campos de entrada com ícones SVG e botão de ação neon.
+ *   • Fundo: Atmosfera Dark Sci-Fi Corporate com anéis 3D e reflexos no chão.
+ *   • Funcionalidades: Autenticação Supabase real, lembrar e-mail, recuperação e atalho
+ *     de clique triplo para QuickAccessDialog.
  */
 
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
@@ -22,103 +23,218 @@ export const Route = createFileRoute("/auth")({
     meta: [
       { title: "Caroldo | Acesso ao sistema de gestão" },
       { name: "description", content: "Sistema integrado de gestão da Caroldo. Acesso corporativo seguro." },
-      { name: "theme-color", content: "#0b0b0d" },
+      { name: "theme-color", content: "#08090c" },
     ],
   }),
   component: AuthPage,
 });
 
 // ---------------------------------------------------------------------------
-// SVG inline idênticos ao pacote original
+// Ícones SVG embutidos de alta precisão
 // ---------------------------------------------------------------------------
-function SvgEnvelope() {
+function IconEnvelope() {
   return (
-    <svg className="cl-field-icon" viewBox="0 0 24 24" aria-hidden="true">
-      <rect x="2.5" y="5" width="19" height="14" rx="2" />
+    <svg className="cl-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="2.5" y="5" width="19" height="14" rx="2.5" />
       <path d="m3 7 9 7 9-7" />
     </svg>
   );
 }
-function SvgLock() {
+
+function IconLock() {
   return (
-    <svg className="cl-field-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <svg className="cl-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <rect x="5" y="10" width="14" height="11" rx="2" />
       <path d="M8 10V7a4 4 0 0 1 8 0v3" />
     </svg>
   );
 }
-function SvgEyeToggle({ visible }: { visible: boolean }) {
+
+function IconEye({ off }: { off?: boolean }) {
+  if (off) {
+    return (
+      <svg className="cl-eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6Z" />
+        <circle cx="12" cy="12" r="3" />
+        <path d="m3 21 18-18" />
+      </svg>
+    );
+  }
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="cl-eye-svg">
+    <svg className="cl-eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6Z" />
       <circle cx="12" cy="12" r="3" />
-      {!visible && <path d="m3 21 18-18" />}
     </svg>
   );
 }
-function SvgArrow() {
+
+function IconArrowRight() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="cl-cta-arrow">
-      <path d="M4 12h16m-6-6 6 6-6 6" />
+    <svg className="cl-btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M5 12h14m-6-6 6 6-6 6" />
     </svg>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Formulário — compartilhado entre desktop e mobile
+// Emblema circular oficial Caroldo (SVG vetorial pixel-perfect)
+// ---------------------------------------------------------------------------
+function CaroldoEmblem({ size = 120 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 120 120"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ flexShrink: 0 }}
+      aria-label="Caroldo Prestação de Serviços"
+    >
+      <defs>
+        <linearGradient id="emblemOrange" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FF6A00" />
+          <stop offset="100%" stopColor="#D94800" />
+        </linearGradient>
+        <linearGradient id="emblemInner" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FF5C00" />
+          <stop offset="100%" stopColor="#C83B00" />
+        </linearGradient>
+        <path id="txtArcTop" d="M 16,60 A 44,44 0 0 1 104,60" />
+        <path id="txtArcBot" d="M 22,70 A 38,38 0 0 0 98,70" />
+      </defs>
+
+      {/* Anel exterior laranja */}
+      <circle cx="60" cy="60" r="58" fill="url(#emblemOrange)" />
+      {/* Anel intermediário preto */}
+      <circle cx="60" cy="60" r="53" fill="#000000" />
+      {/* Miolo laranja */}
+      <circle cx="60" cy="60" r="48" fill="url(#emblemInner)" />
+
+      {/* Texto superior em arco */}
+      <text fontSize="7.2" fontFamily="Montserrat, Arial, sans-serif" fontWeight="900" fill="#000000" letterSpacing="0.4">
+        <textPath href="#txtArcTop" startOffset="50%" textAnchor="middle">
+          CAROLDO PRESTAÇÃO DE SERVIÇOS LTDA
+        </textPath>
+      </text>
+
+      {/* Monograma C estilizado */}
+      <text
+        x="60"
+        y="75"
+        textAnchor="middle"
+        fontSize="64"
+        fontFamily="Georgia, serif"
+        fontStyle="italic"
+        fontWeight="900"
+        fill="#FFFFFF"
+        opacity="0.96"
+      >
+        C
+      </text>
+
+      {/* Sobreposição cursiva 'Caroldo' */}
+      <text
+        x="60"
+        y="83"
+        textAnchor="middle"
+        fontSize="11"
+        fontFamily="Montserrat, Arial Black, sans-serif"
+        fontWeight="900"
+        fontStyle="italic"
+        fill="#000000"
+        letterSpacing="-0.3"
+      >
+        Caroldo
+      </text>
+
+      {/* Texto inferior em arco */}
+      <text fontSize="7.6" fontFamily="Montserrat, Arial, sans-serif" fontWeight="900" fill="#FFFFFF" letterSpacing="1.8">
+        <textPath href="#txtArcBot" startOffset="50%" textAnchor="middle">
+          TRIUNFO · RS
+        </textPath>
+      </text>
+    </svg>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Formulário Interativo de Login
 // ---------------------------------------------------------------------------
 interface LoginFormProps {
-  emailId: string;
-  passwordId: string;
   busy: boolean;
   onSubmit: (email: string, password: string, remember: boolean) => Promise<void>;
   onForgot: (email: string) => void;
 }
 
-function LoginForm({ emailId, passwordId, busy, onSubmit, onForgot }: LoginFormProps) {
-  const [email, setEmail]         = useState("");
-  const [password, setPassword]   = useState("");
-  const [remember, setRemember]   = useState(false);
-  const [showPwd, setShowPwd]     = useState(false);
-  const [emailErr, setEmailErr]   = useState("");
-  const [pwdErr, setPwdErr]       = useState("");
-  const emailRef                  = useRef<HTMLInputElement>(null);
-  const pwdRef                    = useRef<HTMLInputElement>(null);
+function LoginForm({ busy, onSubmit, onForgot }: LoginFormProps) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
 
-  // Recupera e-mail memorizado
+  // Recupera e-mail salvo
   useEffect(() => {
     try {
       const saved = localStorage.getItem("caroldo_remember_email");
-      if (saved) { setEmail(saved); setRemember(true); }
+      if (saved) {
+        setEmail(saved);
+        setRemember(true);
+      }
     } catch (_) {}
   }, []);
 
-  function validateEmail(v: string) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+  function validateEmail(val: string) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleFormSubmit(e: React.FormEvent) {
     e.preventDefault();
-    let valid = true;
-    if (!validateEmail(email.trim())) { setEmailErr("Informe um e-mail válido."); valid = false; } else setEmailErr("");
-    if (!password) { setPwdErr("Informe sua senha."); valid = false; } else setPwdErr("");
-    if (!valid) {
-      (emailErr ? emailRef : pwdRef).current?.focus();
+    let hasError = false;
+
+    if (!validateEmail(email.trim())) {
+      setEmailError("Informe um e-mail válido.");
+      hasError = true;
+    } else {
+      setEmailError("");
+    }
+
+    if (!password) {
+      setPasswordError("Informe sua senha.");
+      hasError = true;
+    } else {
+      setPasswordError("");
+    }
+
+    if (hasError) {
+      if (!validateEmail(email.trim())) {
+        emailInputRef.current?.focus();
+      } else {
+        passwordInputRef.current?.focus();
+      }
       return;
     }
+
     await onSubmit(email.trim(), password, remember);
   }
 
   return (
-    <form className="cl-login-form" onSubmit={handleSubmit} noValidate>
-      {/* E-mail */}
-      <div className={`cl-field-group${emailErr ? " cl-has-error" : ""}`}>
-        <label htmlFor={emailId}>E-mail corporativo</label>
-        <div className="cl-field-shell">
-          <SvgEnvelope />
+    <form className="cl-form" onSubmit={handleFormSubmit} noValidate>
+      {/* Campo E-mail */}
+      <div className={`cl-field-block ${emailError ? "has-error" : ""}`}>
+        <label htmlFor="user-email" className="cl-label">
+          E-mail corporativo
+        </label>
+        <div className="cl-input-shell">
+          <span className="cl-icon-box">
+            <IconEnvelope />
+          </span>
           <input
-            ref={emailRef}
-            id={emailId}
+            ref={emailInputRef}
+            id="user-email"
             name="email"
             type="email"
             autoComplete="username"
@@ -127,93 +243,98 @@ function LoginForm({ emailId, passwordId, busy, onSubmit, onForgot }: LoginFormP
             spellCheck={false}
             required
             value={email}
-            aria-invalid={emailErr ? "true" : "false"}
-            onChange={(e) => { setEmail(e.target.value); setEmailErr(""); }}
+            aria-invalid={emailError ? "true" : "false"}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (emailError) setEmailError("");
+            }}
+            className="cl-input"
           />
         </div>
-        <p className="cl-field-error" aria-live="polite">{emailErr}</p>
+        {emailError && <p className="cl-error-msg" aria-live="polite">{emailError}</p>}
       </div>
 
-      {/* Senha */}
-      <div className={`cl-field-group cl-password-group${pwdErr ? " cl-has-error" : ""}`}>
-        <label htmlFor={passwordId}>Senha</label>
-        <div className="cl-field-shell">
-          <SvgLock />
+      {/* Campo Senha */}
+      <div className={`cl-field-block ${passwordError ? "has-error" : ""}`}>
+        <label htmlFor="user-password" className="cl-label">
+          Senha
+        </label>
+        <div className="cl-input-shell">
+          <span className="cl-icon-box">
+            <IconLock />
+          </span>
           <input
-            ref={pwdRef}
-            id={passwordId}
+            ref={passwordInputRef}
+            id="user-password"
             name="password"
-            type={showPwd ? "text" : "password"}
+            type={showPassword ? "text" : "password"}
             autoComplete="current-password"
-            placeholder="Digite sua senha"
+            placeholder="••••••••••"
             required
             minLength={1}
             value={password}
-            aria-invalid={pwdErr ? "true" : "false"}
-            onChange={(e) => { setPassword(e.target.value); setPwdErr(""); }}
+            aria-invalid={passwordError ? "true" : "false"}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              if (passwordError) setPasswordError("");
+            }}
+            className="cl-input cl-input-password"
           />
           <button
             type="button"
-            className="cl-reveal"
-            aria-label={showPwd ? "Ocultar senha" : "Mostrar senha"}
-            aria-pressed={showPwd}
-            onClick={() => { setShowPwd((v) => !v); pwdRef.current?.focus(); }}
+            className="cl-eye-btn"
+            aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+            aria-pressed={showPassword}
+            onClick={() => {
+              setShowPassword((v) => !v);
+              passwordInputRef.current?.focus();
+            }}
           >
-            <SvgEyeToggle visible={showPwd} />
+            <IconEye off={showPassword} />
           </button>
         </div>
-        <p className="cl-field-error" aria-live="polite">{pwdErr}</p>
+        {passwordError && <p className="cl-error-msg" aria-live="polite">{passwordError}</p>}
       </div>
 
-      {/* Lembrar + Esqueci */}
-      <div className="cl-actions-row">
-        <label className="cl-remember">
+      {/* Linha de Ações: Lembrar + Esqueci */}
+      <div className="cl-options-row">
+        <label className="cl-checkbox-label">
           <input
             type="checkbox"
             name="remember"
             checked={remember}
             onChange={(e) => setRemember(e.target.checked)}
+            className="cl-checkbox"
           />
           <span>Lembrar meu e-mail</span>
         </label>
         <button
           type="button"
-          className="cl-forgot"
+          className="cl-link-forgot"
           onClick={() => onForgot(email.trim())}
         >
           Esqueci minha senha
         </button>
       </div>
 
-      {/* CTA */}
-      <button type="submit" className="cl-submit-button" disabled={busy}>
+      {/* Botão de Envio CTA */}
+      <button type="submit" className="cl-submit-btn" disabled={busy}>
         <span>{busy ? "Validando credenciais…" : "Entrar na plataforma"}</span>
-        {!busy && <SvgArrow />}
+        {!busy && <IconArrowRight />}
       </button>
     </form>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Página principal
+// Página Principal de Autenticação
 // ---------------------------------------------------------------------------
 function AuthPage() {
-  const [busy, setBusy]           = useState(false);
+  const [busy, setBusy] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
   const navigate = useNavigate();
 
-  // Escala proporcional 1672×941
-  useEffect(() => {
-    const stage = document.getElementById("cl-desktop-stage");
-    function scale() {
-      const s = Math.min(window.innerWidth / 1672, window.innerHeight / 941);
-      stage?.style.setProperty("--scene-scale", String(s));
-    }
-    scale();
-    window.addEventListener("resize", scale, { passive: true });
-    return () => window.removeEventListener("resize", scale);
-  }, []);
-
+  // Atalho de clique triplo para abrir o QuickAccessDialog
   const handleTripleClick = useTripleClick(() => setQuickOpen(true), 1200);
 
   async function handleLogin(email: string, password: string, remember: boolean) {
@@ -221,10 +342,15 @@ function AuthPage() {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
+
       try {
-        if (remember) localStorage.setItem("caroldo_remember_email", email);
-        else          localStorage.removeItem("caroldo_remember_email");
+        if (remember) {
+          localStorage.setItem("caroldo_remember_email", email);
+        } else {
+          localStorage.removeItem("caroldo_remember_email");
+        }
       } catch (_) {}
+
       toast.success("Bem-vindo de volta!");
       navigate({ to: "/painel" });
     } catch (err) {
@@ -235,402 +361,755 @@ function AuthPage() {
   }
 
   function handleForgot(email: string) {
-    if (!email) { toast.info("Digite seu e-mail corporativo no campo acima primeiro."); return; }
+    if (!email) {
+      toast.info("Digite seu e-mail corporativo no campo de e-mail primeiro.");
+      return;
+    }
     toast.promise(
       supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth?reset=true`,
       }),
       {
         loading: "Enviando e-mail de recuperação...",
-        success: "Link de recuperação enviado!",
-        error:   "Não foi possível enviar o e-mail de recuperação.",
-      },
+        success: "Link de recuperação enviado para o seu e-mail corporativo!",
+        error: "Não foi possível enviar o e-mail de recuperação.",
+      }
     );
   }
 
   return (
     <>
-      {/* Montserrat — igual ao pacote */}
+      {/* Carregamento otimizado da fonte Montserrat */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
       <link
-        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap"
         rel="stylesheet"
       />
 
-      <main>
-        {/* ══════════════════════════════════════════════════
-            DESKTOP — palco 1672×941 com arte-base rasterizada
-            ══════════════════════════════════════════════════ */}
-        <section className="cl-desktop-scene" aria-label="Acesso corporativo Caroldo">
-          <div className="cl-desktop-stage" id="cl-desktop-stage">
-            {/* Arte-base: imagem de referência 3D do pacote */}
-            <img
-              className="cl-reference-art"
-              src="/assets/referencia-desktop.png"
-              alt=""
-              aria-hidden="true"
-            />
+      <div className="cl-root-viewport">
+        {/* ── Composição de Iluminação e Efeitos 3D de Fundo ── */}
+        <div className="cl-ambient-layer" aria-hidden="true">
+          {/* Fundo com arte de referência quando disponível */}
+          <div className="cl-bg-cover" />
 
-            {/* Texto acessível sem duplicar visualmente */}
-            <div className="cl-sr-only">
-              <h1>Gestão que impulsiona resultados.</h1>
-              <p>Sistema integrado de gestão da Caroldo.</p>
-              <p>O senhor é meu pastor, nada me faltará. Salmo 23.</p>
-            </div>
+          {/* Anéis e feixes esculturais luminosos */}
+          <div className="cl-ring cl-ring-large" />
+          <div className="cl-ring cl-ring-glow" />
+          <div className="cl-ring cl-ring-small" />
 
-            {/* Card interativo posicionado pixel-perfect */}
-            <div className="cl-login-card cl-desktop-card">
-              <h2 className="cl-card-heading">
-                {/* Triple-click no heading abre QuickAccessDialog */}
-                <span onClick={handleTripleClick} style={{ cursor: "default" }}>
-                  Comece seu dia com
-                </span>
-                <strong>fé, trabalho e compromisso.</strong>
-              </h2>
-              <LoginForm
-                emailId="desktop-email"
-                passwordId="desktop-password"
-                busy={busy}
-                onSubmit={handleLogin}
-                onForgot={handleForgot}
-              />
-            </div>
+          {/* Glows radiais de alta energia */}
+          <div className="cl-glow cl-glow-top-right" />
+          <div className="cl-glow cl-glow-card-back" />
+          <div className="cl-glow cl-glow-bottom-left" />
+
+          {/* Reflexo luminoso no piso metálico */}
+          <div className="cl-floor-reflection" />
+          <div className="cl-floor-beam" />
+        </div>
+
+        {/* ── Conteúdo Central Responsivo (Grid 2 Colunas para PC / 1 Coluna para Mobile) ── */}
+        <main className="cl-main-wrapper">
+          <div className="cl-grid-container">
+
+            {/* ══════════════════════════════════════════════
+                COLUNA ESQUERDA: Identidade Visual e Mensagem
+               ══════════════════════════════════════════════ */}
+            <section className="cl-brand-column">
+              {/* Logo oficial e Versículo com clique triplo para credenciais de acesso rápido */}
+              <div
+                className="cl-brand-header"
+                onClick={handleTripleClick}
+                title="Portal Caroldo — clique 3× para acesso rápido"
+              >
+                <CaroldoEmblem size={132} />
+
+                <div className="cl-scripture-box">
+                  <p className="cl-verse">“O senhor é meu pastor, nada me faltará.”</p>
+                  <p className="cl-verse-author">SALMO 23</p>
+                </div>
+              </div>
+
+              {/* Headline Hero Corporativa */}
+              <div className="cl-hero-text">
+                <h1 className="cl-title">
+                  Gestão que <br className="cl-br-desktop" />
+                  <span className="cl-highlight">impulsiona</span> <br className="cl-br-desktop" />
+                  resultados<span className="cl-dot">.</span>
+                </h1>
+                <p className="cl-subtitle">
+                  Sistema integrado de gestão da Caroldo.
+                </p>
+                <div className="cl-accent-bar" />
+              </div>
+            </section>
+
+            {/* ══════════════════════════════════════════════
+                COLUNA DIREITA: Card de Autenticação Glassmorphism
+               ══════════════════════════════════════════════ */}
+            <section className="cl-card-column">
+              <div className="cl-auth-card">
+                {/* Glow sutil interno superior direito do card */}
+                <div className="cl-card-ambient-glow" aria-hidden="true" />
+
+                <div className="cl-card-content">
+                  <h2 className="cl-card-title">
+                    <span>Comece seu dia com</span>
+                    <strong>fé, trabalho e compromisso.</strong>
+                  </h2>
+
+                  <LoginForm
+                    busy={busy}
+                    onSubmit={handleLogin}
+                    onForgot={handleForgot}
+                  />
+                </div>
+              </div>
+            </section>
+
           </div>
-        </section>
+        </main>
 
-        {/* ══════════════════════════════════════════════════
-            MOBILE — reflow vertical com anéis orgânicos
-            ══════════════════════════════════════════════════ */}
-        <section className="cl-mobile-scene" aria-label="Acesso Caroldo no celular">
-          <div className="cl-mobile-ribbon" aria-hidden="true" />
-          <div className="cl-mobile-content">
-            <header
-              className="cl-mobile-brand"
-              onClick={handleTripleClick}
-              title="Portal Caroldo — clique 3× para acesso rápido"
-              style={{ cursor: "default" }}
-            >
-              <img
-                src="/assets/logo-caroldo.png"
-                alt="Caroldo Prestação de Serviços Ltda, Triunfo - RS"
-              />
-              <p className="cl-verse">"O senhor é meu pastor, nada me faltará."</p>
-              <p className="cl-verse-source">SALMO 23</p>
-            </header>
-            <div className="cl-mobile-copy">
-              <h1>
-                Gestão que <em>impulsiona</em> resultados<span className="cl-period">.</span>
-              </h1>
-              <p>Sistema integrado de gestão da Caroldo.</p>
-            </div>
-            <div className="cl-login-card cl-mobile-card">
-              <h2 className="cl-card-heading">
-                <span>Comece seu dia com</span>
-                <strong>fé, trabalho e compromisso.</strong>
-              </h2>
-              <LoginForm
-                emailId="mobile-email"
-                passwordId="mobile-password"
-                busy={busy}
-                onSubmit={handleLogin}
-                onForgot={handleForgot}
-              />
-            </div>
-          </div>
-        </section>
-      </main>
+        {/* Modal de Acesso Rápido para Administradores / Supervisores */}
+        <QuickAccessDialog open={quickOpen} onOpenChange={setQuickOpen} />
+      </div>
 
-      <QuickAccessDialog open={quickOpen} onOpenChange={setQuickOpen} />
-
-      {/* ══════════════════════════════════════════════════
-          CSS — espelho fiel do styles.css do pacote
-          (prefixado com cl- para não vazar ao app)
-          ══════════════════════════════════════════════════ */}
+      {/* ═════════════════════════════════════════════════════════════
+          ESTILOS CSS INTEGRADOS: 100% RESPONSIVO PARA PC E MOBILE
+         ═════════════════════════════════════════════════════════════ */}
       <style>{`
-        /* Reset mínimo */
-        *, *::before, *::after { box-sizing: border-box; }
+        /* Reset e Base */
+        *, *::before, *::after {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+        }
 
-        /* Variáveis */
         :root {
-          --cl-orange:     #ff6a00;
-          --cl-orange-hot: #ff4d0a;
-          --cl-white:      #fff;
-          --cl-soft:       #b8b8bd;
-          --cl-field:      #1c1c1e;
+          --cl-primary-orange: #ff6a00;
+          --cl-primary-hot:    #ff5500;
+          --cl-border-card:    #ff9b61;
+          --cl-bg-dark:        #08090c;
         }
 
-        /* Tipografia base */
-        body { font-family: Montserrat, Arial, sans-serif; background: #09090a; color: #fff; -webkit-font-smoothing: antialiased; }
-        button, input { font: inherit; }
-        button { cursor: pointer; }
-
-        /* Screen-reader only */
-        .cl-sr-only {
-          position: absolute; width: 1px; height: 1px; padding: 0;
-          margin: -1px; overflow: hidden; clip: rect(0,0,0,0);
-          white-space: nowrap; border: 0;
+        /* Viewport principal com altura dinâmica e sem overflow horizontal */
+        .cl-root-viewport {
+          position: relative;
+          min-height: 100vh;
+          min-height: 100dvh;
+          width: 100%;
+          background-color: var(--cl-bg-dark);
+          color: #ffffff;
+          font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          overflow-x: hidden;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          -webkit-font-smoothing: antialiased;
         }
 
-        /* ── DESKTOP SCENE ── */
-        .cl-desktop-scene {
-          position: fixed; inset: 0;
-          display: flex; align-items: center; justify-content: center;
-          overflow: hidden; background: #070708;
-        }
-        .cl-desktop-stage {
-          width: 1672px; height: 941px;
-          position: relative; flex: 0 0 auto;
-          transform: scale(var(--scene-scale, 1));
-          transform-origin: center center;
-        }
-        .cl-reference-art {
-          position: absolute; width: 1672px; height: 941px;
-          inset: 0; object-fit: cover;
-          pointer-events: none; user-select: none;
-        }
-
-        /* ── CARD ── */
-        .cl-login-card { color: #fff; isolation: isolate; }
-        .cl-desktop-card {
-          position: absolute; left: 949px; top: 186px;
-          width: 595px; min-height: 578px;
-          padding: 50px 60px 43px;
-          border-radius: 31px; border: 1.5px solid #ff9b61;
-          background:
-            radial-gradient(ellipse at 96% 0%, rgba(116,47,10,.17), transparent 55%),
-            linear-gradient(130deg, #161617 0%, #0b0d0e 54%, #21110b 100%);
-          box-shadow: 0 8px 28px #0008, inset 0 0 20px #ff6b0014, 0 0 40px #ff720013;
-          overflow: visible;
-        }
-        .cl-desktop-card::before {
-          content: "";
-          position: absolute; inset: 0; border-radius: inherit;
+        /* ── EFEITOS E AMBIENTE 3D ── */
+        .cl-ambient-layer {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
           pointer-events: none;
-          background: linear-gradient(155deg, rgba(255,117,37,.08), transparent 41%, transparent 72%, rgba(240,79,0,.16));
+          z-index: 0;
+        }
+
+        /* Imagem de referência 3D como background sutil */
+        .cl-bg-cover {
+          position: absolute;
+          inset: 0;
+          background:
+            radial-gradient(ellipse 900px 600px at 70% 48%, rgba(255, 90, 0, 0.16) 0%, transparent 70%),
+            radial-gradient(ellipse 700px 500px at 20% 90%, rgba(255, 75, 0, 0.09) 0%, transparent 65%),
+            radial-gradient(ellipse 600px 800px at 85% 15%, rgba(255, 110, 0, 0.12) 0%, transparent 60%),
+            linear-gradient(160deg, #0d0f14 0%, #08090c 45%, #150d08 100%);
+          background-size: cover;
+        }
+
+        /* Anéis 3D esculturais */
+        .cl-ring {
+          position: absolute;
+          border-radius: 50%;
+          box-sizing: border-box;
+          pointer-events: none;
+        }
+
+        .cl-ring-large {
+          top: -120px;
+          right: 18%;
+          width: 720px;
+          height: 720px;
+          border: 74px solid rgba(220, 75, 0, 0.72);
+          transform: rotate(-22deg) scaleX(0.72);
+          filter: blur(0.5px);
+          box-shadow: 0 0 70px rgba(255, 85, 0, 0.35), inset 0 0 50px rgba(255, 85, 0, 0.15);
+        }
+
+        .cl-ring-glow {
+          top: 140px;
+          right: 5%;
+          width: 580px;
+          height: 580px;
+          border: 52px solid rgba(170, 50, 0, 0.55);
+          transform: rotate(12deg) scaleX(0.66);
+          filter: blur(1px);
+        }
+
+        .cl-ring-small {
+          top: 280px;
+          right: 14%;
+          width: 440px;
+          height: 440px;
+          border: 44px solid rgba(255, 90, 0, 0.65);
+          transform: rotate(-32deg) scaleX(0.6) scaleY(1.05);
+          filter: blur(0.4px);
+          box-shadow: 0 0 90px rgba(255, 85, 0, 0.45);
+        }
+
+        /* Glows radiais */
+        .cl-glow {
+          position: absolute;
+          border-radius: 50%;
+          pointer-events: none;
+        }
+
+        .cl-glow-top-right {
+          top: -100px;
+          right: -100px;
+          width: 550px;
+          height: 550px;
+          background: radial-gradient(circle, rgba(255, 85, 0, 0.22) 0%, transparent 68%);
+          filter: blur(20px);
+        }
+
+        .cl-glow-card-back {
+          top: 50%;
+          right: 25%;
+          transform: translateY(-50%);
+          width: 500px;
+          height: 500px;
+          background: radial-gradient(circle, rgba(255, 85, 0, 0.16) 0%, transparent 68%);
+          filter: blur(35px);
+        }
+
+        .cl-glow-bottom-left {
+          bottom: 5%;
+          left: -80px;
+          width: 420px;
+          height: 420px;
+          background: radial-gradient(circle, rgba(255, 85, 0, 0.08) 0%, transparent 70%);
+          filter: blur(25px);
+        }
+
+        /* Piso luminoso */
+        .cl-floor-reflection {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 180px;
+          background: linear-gradient(to top, rgba(255, 85, 0, 0.12), rgba(255, 85, 0, 0.03), transparent);
+        }
+
+        .cl-floor-beam {
+          position: absolute;
+          bottom: 36px;
+          left: 10%;
+          right: 10%;
+          height: 1.5px;
+          background: linear-gradient(to right, transparent, rgba(255, 90, 0, 0.65), transparent);
+          filter: blur(1px);
+        }
+
+        /* ── ESTRUTURA PRINCIPAL (DESKTOP E MOBILE) ── */
+        .cl-main-wrapper {
+          position: relative;
+          z-index: 10;
+          width: 100%;
+          max-width: 1540px;
+          margin: 0 auto;
+          padding: 48px 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .cl-grid-container {
+          width: 100%;
+          display: grid;
+          grid-template-columns: 1.15fr 0.95fr;
+          gap: 48px;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        /* ── COLUNA ESQUERDA (BRANDING) ── */
+        .cl-brand-column {
+          display: flex;
+          flex-direction: column;
+          gap: 40px;
+          padding-left: 16px;
+        }
+
+        .cl-brand-header {
+          display: inline-flex;
+          flex-direction: column;
+          align-items: flex-start;
+          cursor: pointer;
+          user-select: none;
+          transition: transform 0.2s ease;
+          width: fit-content;
+        }
+
+        .cl-brand-header:hover {
+          transform: scale(1.02);
+        }
+
+        .cl-scripture-box {
+          margin-top: 18px;
+          max-width: 440px;
+        }
+
+        .cl-verse {
+          color: #f0f0f2;
+          font-size: 14.5px;
+          font-style: italic;
+          font-weight: 400;
+          line-height: 1.5;
+        }
+
+        .cl-verse-author {
+          color: #8c8994;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.28em;
+          text-transform: uppercase;
+          margin-top: 6px;
+        }
+
+        .cl-hero-text {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .cl-title {
+          font-size: clamp(2.8rem, 5vw, 5.2rem);
+          font-weight: 900;
+          line-height: 1.04;
+          letter-spacing: -1.8px;
+          color: #ffffff;
+        }
+
+        .cl-highlight {
+          color: var(--cl-primary-orange);
+        }
+
+        .cl-dot {
+          color: var(--cl-primary-orange);
+        }
+
+        .cl-subtitle {
+          color: #a3a1ab;
+          font-size: clamp(1rem, 1.4vw, 1.25rem);
+          font-weight: 400;
+          margin-top: 20px;
+        }
+
+        .cl-accent-bar {
+          margin-top: 24px;
+          height: 4px;
+          width: 72px;
+          border-radius: 9999px;
+          background: var(--cl-primary-orange);
+          box-shadow: 0 0 16px rgba(255, 106, 0, 0.6);
+        }
+
+        /* ── COLUNA DIREITA (CARD) ── */
+        .cl-card-column {
+          display: flex;
+          justify-content: flex-end;
+          width: 100%;
+        }
+
+        .cl-auth-card {
+          position: relative;
+          width: 100%;
+          max-width: 580px;
+          min-height: 570px;
+          border-radius: 31px;
+          border: 1.5px solid var(--cl-border-card);
+          background:
+            radial-gradient(ellipse at 96% 0%, rgba(116, 47, 10, 0.22), transparent 55%),
+            linear-gradient(130deg, #17181c 0%, #0d0f12 54%, #22120a 100%);
+          box-shadow:
+            0 16px 48px rgba(0, 0, 0, 0.75),
+            inset 0 0 20px rgba(255, 107, 0, 0.08),
+            0 0 45px rgba(255, 114, 0, 0.12);
+          padding: 48px 52px;
+          backdrop-filter: blur(28px);
+          -webkit-backdrop-filter: blur(28px);
+          isolation: isolate;
+        }
+
+        .cl-card-ambient-glow {
+          position: absolute;
+          top: -40px;
+          right: -40px;
+          width: 200px;
+          height: 200px;
+          border-radius: 50%;
+          background: rgba(255, 106, 0, 0.15);
+          filter: blur(45px);
+          pointer-events: none;
           z-index: -1;
         }
 
-        /* ── HEADING ── */
-        .cl-card-heading {
-          font-weight: 800; letter-spacing: -1.5px; line-height: 1.16;
-          margin: 0 0 38px; font-size: 35px;
-        }
-        .cl-card-heading span,
-        .cl-card-heading strong { display: block; }
-        .cl-card-heading span   { color: white; }
-        .cl-card-heading strong {
-          color: #ff671a; font-weight: 800;
-          white-space: nowrap; font-size: 34px; letter-spacing: -1.7px;
+        .cl-card-content {
+          position: relative;
+          z-index: 1;
         }
 
-        /* ── FORM ── */
-        .cl-login-form { display: block; }
-        .cl-field-group { position: relative; margin-bottom: 26px; }
-        .cl-field-group > label { display: block; font-size: 16px; font-weight: 600; margin: 0 0 10px; line-height: 1.25; }
-
-        .cl-field-shell {
-          display: flex; align-items: center;
-          height: 60px; border-radius: 14px;
-          border: 1px solid #6c6261;
-          background: linear-gradient(100deg, #232124ed, #222224e3);
-          transition: border-color .18s, box-shadow .18s;
+        .cl-card-title {
+          font-weight: 800;
+          letter-spacing: -1.2px;
+          line-height: 1.2;
+          margin-bottom: 34px;
+          font-size: clamp(26px, 2.5vw, 34px);
         }
-        .cl-field-shell:focus-within {
+
+        .cl-card-title span {
+          display: block;
+          color: #ffffff;
+        }
+
+        .cl-card-title strong {
+          display: block;
+          color: var(--cl-primary-orange);
+          font-weight: 800;
+          letter-spacing: -1.2px;
+          margin-top: 2px;
+        }
+
+        /* ── FORMULÁRIO E CAMPOS ── */
+        .cl-form {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        .cl-field-block {
+          position: relative;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .cl-label {
+          display: block;
+          font-size: 15px;
+          font-weight: 600;
+          color: #d6d5dc;
+          margin-bottom: 9px;
+          line-height: 1.2;
+        }
+
+        .cl-input-shell {
+          position: relative;
+          display: flex;
+          align-items: center;
+          height: 60px;
+          border-radius: 14px;
+          border: 1px solid #5a5457;
+          background: linear-gradient(100deg, rgba(35, 33, 36, 0.94), rgba(34, 34, 36, 0.90));
+          transition: border-color 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .cl-input-shell:focus-within {
           border-color: #ff8d43;
-          box-shadow: 0 0 0 3px #ff760026;
+          box-shadow: 0 0 0 3px rgba(255, 118, 0, 0.22);
         }
 
-        .cl-field-icon {
-          width: 25px; height: 25px; flex: 0 0 25px; margin-left: 19px;
-          fill: none; stroke: #fff; stroke-width: 1.7;
-          stroke-linecap: round; stroke-linejoin: round;
+        .cl-field-block.has-error .cl-input-shell {
+          border-color: #ff6a6a;
         }
-        .cl-field-shell input {
-          background: transparent; color: #fff; border: 0; outline: 0;
-          min-width: 0; flex: 1;
-          padding: 0 14px 0 18px; height: 100%;
-          font-size: 15px; letter-spacing: -.4px;
+
+        .cl-icon-box {
+          position: absolute;
+          left: 18px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #9c99a4;
+          pointer-events: none;
         }
-        .cl-field-shell input::placeholder { color: #b5b4b8; opacity: 1; }
-        .cl-field-shell input:-webkit-autofill {
-          -webkit-text-fill-color: #fff;
+
+        .cl-input-icon {
+          width: 23px;
+          height: 23px;
+          stroke: #ffffff;
+        }
+
+        .cl-input {
+          flex: 1;
+          height: 100%;
+          background: transparent;
+          border: none;
+          outline: none;
+          color: #ffffff;
+          font-size: 15px;
+          font-family: inherit;
+          padding-left: 54px;
+          padding-right: 18px;
+          letter-spacing: -0.3px;
+        }
+
+        .cl-input-password {
+          padding-right: 52px;
+        }
+
+        .cl-input::placeholder {
+          color: #8c8994;
+          opacity: 1;
+        }
+
+        .cl-input:-webkit-autofill {
+          -webkit-text-fill-color: #ffffff;
           transition: background-color 999999s;
         }
 
-        /* Toggle de senha */
-        .cl-reveal {
-          width: 52px; height: 100%;
-          background: transparent; border: 0; color: white;
-          display: flex; align-items: center; justify-content: center;
-          border-radius: 13px;
+        .cl-eye-btn {
+          position: absolute;
+          right: 12px;
+          height: 42px;
+          width: 42px;
+          background: transparent;
+          border: none;
+          color: #a3a1ab;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 10px;
+          cursor: pointer;
+          transition: color 0.15s ease, background 0.15s ease;
         }
-        .cl-eye-svg {
-          width: 23px; height: 23px;
-          fill: none; stroke: currentColor; stroke-width: 1.6;
-          stroke-linecap: round; stroke-linejoin: round;
-        }
-        .cl-reveal:hover { color: #ff8a40; }
-        :focus-visible { outline: 2px solid #ffae6d; outline-offset: 3px; }
 
-        /* Erros de campo */
-        .cl-field-error {
-          position: absolute; left: 4px; top: 100%;
-          margin: 3px 0 0; color: #ffae8c; font-size: 11px; line-height: 1.2; min-height: 0;
+        .cl-eye-btn:hover {
+          color: #ffffff;
+          background: rgba(255, 255, 255, 0.08);
         }
-        .cl-has-error { margin-bottom: 32px; }
-        .cl-password-group { margin-bottom: 21px; }
 
-        /* Actions row */
-        .cl-actions-row {
-          display: flex; justify-content: space-between; align-items: center;
-          gap: 12px; margin-bottom: 28px; font-size: 14px; letter-spacing: -.4px;
+        .cl-eye-icon {
+          width: 22px;
+          height: 22px;
         }
-        .cl-remember {
-          display: flex; align-items: center; gap: 12px;
-          cursor: pointer; white-space: nowrap;
+
+        .cl-error-msg {
+          font-size: 11.5px;
+          color: #ff9b85;
+          margin-top: 5px;
+          padding-left: 4px;
         }
-        .cl-remember input {
-          appearance: none; margin: 0;
-          width: 23px; height: 23px; border-radius: 4px;
-          border: 1px solid #8a7471; background: #141416;
-          display: grid; place-content: center;
-          cursor: pointer; flex: 0 0 auto;
+
+        /* ── LINHA DE OPÇÕES (LEMBRAR E-MAIL E ESQUECI SENHA) ── */
+        .cl-options-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          font-size: 13.5px;
+          color: #c5c3cc;
+          margin-top: 4px;
+          margin-bottom: 8px;
         }
-        .cl-remember input:checked::after {
+
+        .cl-checkbox-label {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          cursor: pointer;
+          user-select: none;
+        }
+
+        .cl-checkbox {
+          appearance: none;
+          width: 20px;
+          height: 20px;
+          border-radius: 5px;
+          border: 1.5px solid #827271;
+          background: #141417;
+          display: grid;
+          place-content: center;
+          cursor: pointer;
+          transition: border-color 0.15s ease, background-color 0.15s ease;
+        }
+
+        .cl-checkbox:checked {
+          background-color: var(--cl-primary-orange);
+          border-color: var(--cl-primary-orange);
+        }
+
+        .cl-checkbox:checked::after {
           content: "";
-          width: 11px; height: 6px;
-          border: solid #ff6b00; border-width: 0 0 2px 2px;
-          transform: rotate(-45deg) translate(0, -2px);
-        }
-        .cl-forgot {
-          background: none; border: none; padding: 0;
-          color: #cbcad0; text-decoration: none;
-          white-space: nowrap; font-size: 13px;
-          transition: color .15s;
-        }
-        .cl-forgot:hover, .cl-forgot:focus-visible {
-          color: white; text-decoration: underline;
+          width: 10px;
+          height: 6px;
+          border: solid #ffffff;
+          border-width: 0 0 2.2px 2.2px;
+          transform: rotate(-45deg) translate(0, -1.5px);
         }
 
-        /* CTA */
-        .cl-submit-button {
-          height: 69px; width: 100%;
-          background: linear-gradient(100deg, #ff8b00 0%, #ff5700 57%, #ff4e09 100%);
-          border: 0; border-radius: 26px;
-          color: white; font-size: 19px; font-weight: 700; letter-spacing: -.7px;
-          display: flex; align-items: center; justify-content: center; gap: 15px;
-          box-shadow: 0 10px 27px #fa560052, inset 0 1px 0 #ffb26d60;
-          transition: filter .2s, transform .2s;
-        }
-        .cl-submit-button:hover  { filter: brightness(1.09); transform: translateY(-1px); }
-        .cl-submit-button:active { transform: translateY(0); }
-        .cl-submit-button:disabled { opacity: .72; cursor: wait; }
-        .cl-cta-arrow {
-          width: 22px; height: 22px;
-          fill: none; stroke: currentColor; stroke-width: 1.8;
-          stroke-linecap: round; stroke-linejoin: round;
+        .cl-link-forgot {
+          background: none;
+          border: none;
+          color: #a8a6b1;
+          font-size: 13.5px;
+          font-family: inherit;
+          cursor: pointer;
+          transition: color 0.15s ease;
+          padding: 4px 0;
         }
 
-        /* ── MOBILE SCENE ── */
-        .cl-mobile-scene { display: none; }
-
-        @media (max-width: 900px) {
-          .cl-desktop-scene { display: none; }
-          .cl-mobile-scene {
-            position: relative; display: block;
-            overflow: hidden; min-height: 100svh;
-            background:
-              radial-gradient(ellipse at 105% 10%, #4d230f 0%, transparent 47%),
-              radial-gradient(ellipse at 0% 100%,  #331305 0%, transparent 45%),
-              #0a0a0d;
-          }
-          .cl-mobile-scene::before {
-            content: "";
-            position: absolute; top: -220px; right: -310px;
-            width: 670px; height: 670px;
-            border: 68px solid #f76a0a; border-radius: 50%;
-            transform: rotate(35deg) skew(-12deg);
-            box-shadow: inset 15px -12px 22px #9c3005, 0 0 70px #ff6e0025;
-            opacity: .64; pointer-events: none;
-          }
-          .cl-mobile-scene::after {
-            content: "";
-            position: absolute; bottom: -420px; left: -370px;
-            width: 690px; height: 690px;
-            border: 63px solid #453e3b; border-radius: 50%;
-            opacity: .3; pointer-events: none;
-          }
-          .cl-mobile-ribbon {
-            position: absolute; top: 340px; right: -250px;
-            width: 480px; height: 480px;
-            border: 50px solid #301d19;
-            border-top-color: #ea5a0a; border-left-color: #f77f18;
-            border-radius: 50%; transform: rotate(30deg);
-            filter: blur(2px); opacity: .32;
-          }
-          .cl-mobile-content {
-            position: relative; z-index: 1;
-            display: flex; flex-direction: column; align-items: center;
-            max-width: 480px; margin: auto;
-            padding: 32px 20px max(24px, env(safe-area-inset-bottom));
-          }
-          .cl-mobile-brand { text-align: center; }
-          .cl-mobile-brand img {
-            display: block; width: 144px; height: 144px;
-            object-fit: contain; margin: 0 auto 8px;
-            filter: drop-shadow(0 5px 14px #0009);
-          }
-          .cl-verse        { font-size: 12px; font-weight: 700; margin: 0; line-height: 1.5; }
-          .cl-verse-source { font-size: 11px; color: #a8a5a8; margin: 5px 0 0; letter-spacing: .7px; }
-
-          .cl-mobile-copy { text-align: center; margin: 26px 0 23px; }
-          .cl-mobile-copy h1 {
-            font-size: clamp(29px, 7.9vw, 45px);
-            line-height: 1.06; letter-spacing: -1.6px; font-weight: 900; margin: 0 0 13px;
-          }
-          .cl-mobile-copy h1 em    { display: block; color: #ff6a00; font-style: normal; }
-          .cl-mobile-copy h1 .cl-period { color: #ff6a00; }
-          .cl-mobile-copy p { font-size: 13px; line-height: 1.5; color: #c5c1c5; margin: 0; }
-
-          .cl-mobile-card {
-            width: 100%; border-radius: 23px; padding: 28px 23px 25px;
-            border: 1px solid #ff995d;
-            background: linear-gradient(139deg, #1b1819ed, #0b0c0eef 64%, #261309ef);
-            box-shadow: 0 15px 45px #0008, inset 0 0 24px #ff6a0010, 0 0 30px #ff6a0016;
-            backdrop-filter: blur(18px);
-          }
-          .cl-card-heading {
-            font-size: clamp(21px, 5.5vw, 28px); line-height: 1.18;
-            letter-spacing: -.8px; margin-bottom: 26px;
-          }
-          .cl-card-heading strong {
-            font-size: clamp(20px, 5vw, 26px); letter-spacing: -.7px;
-            white-space: normal; margin-top: 3px;
-          }
-          .cl-field-group   { margin-bottom: 23px; }
-          .cl-field-group > label { font-size: 13px; margin-bottom: 8px; }
-          .cl-field-shell   { height: 54px; border-radius: 12px; }
-          .cl-field-icon    { width: 21px; height: 21px; flex-basis: 21px; margin-left: 15px; }
-          .cl-field-shell input { padding-left: 12px; font-size: 13px; }
-          .cl-password-group { margin-bottom: 18px; }
-          .cl-actions-row   { font-size: 11px; gap: 8px; margin-bottom: 24px; }
-          .cl-forgot        { font-size: 11px; }
-          .cl-remember      { gap: 7px; }
-          .cl-remember input { width: 19px; height: 19px; }
-          .cl-submit-button { height: 57px; border-radius: 18px; font-size: 14px; }
-          .cl-cta-arrow     { width: 18px; height: 18px; }
+        .cl-link-forgot:hover {
+          color: #ffffff;
+          text-decoration: underline;
         }
 
-        @media (max-width: 350px) {
-          .cl-mobile-content { padding-inline: 12px; }
-          .cl-mobile-card    { padding-inline: 16px; }
-          .cl-actions-row    { flex-wrap: wrap; }
-          .cl-forgot         { margin-left: auto; }
+        /* ── BOTÃO DE SUBMIT CTA ── */
+        .cl-submit-btn {
+          height: 68px;
+          width: 100%;
+          border: none;
+          border-radius: 24px;
+          background: linear-gradient(100deg, #ff8b00 0%, #ff5700 57%, #ff4705 100%);
+          box-shadow: 0 10px 28px rgba(250, 86, 0, 0.42), inset 0 1px 0 rgba(255, 178, 109, 0.45);
+          color: #ffffff;
+          font-size: 18.5px;
+          font-weight: 700;
+          letter-spacing: -0.4px;
+          font-family: inherit;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 14px;
+          cursor: pointer;
+          transition: filter 0.18s ease, transform 0.15s ease, box-shadow 0.18s ease;
+          margin-top: 6px;
         }
 
-        @media (prefers-reduced-motion: reduce) {
-          *, *::before, *::after { transition: none !important; animation: none !important; }
+        .cl-submit-btn:hover:not(:disabled) {
+          filter: brightness(1.08);
+          transform: translateY(-1.5px);
+          box-shadow: 0 14px 34px rgba(250, 86, 0, 0.55), inset 0 1px 0 rgba(255, 178, 109, 0.55);
+        }
+
+        .cl-submit-btn:active:not(:disabled) {
+          transform: translateY(0);
+        }
+
+        .cl-submit-btn:disabled {
+          opacity: 0.72;
+          cursor: not-allowed;
+          filter: grayscale(0.2);
+        }
+
+        .cl-btn-arrow {
+          width: 22px;
+          height: 22px;
+          transition: transform 0.15s ease;
+        }
+
+        .cl-submit-btn:hover:not(:disabled) .cl-btn-arrow {
+          transform: translateX(3px);
+        }
+
+        /* ── RESPONSIVIDADE FLUIDA (DESKTOP MÉDIO / NOTEBOOKS / LAPTOPS) ── */
+        @media (max-width: 1200px) {
+          .cl-grid-container {
+            grid-template-columns: 1fr 1fr;
+            gap: 36px;
+          }
+          .cl-auth-card {
+            padding: 40px 36px;
+          }
+          .cl-title {
+            font-size: clamp(2.4rem, 4.2vw, 4rem);
+          }
+        }
+
+        /* ── RESPONSIVIDADE MOBILE E TABLET VERTICAL (< 960px) ── */
+        @media (max-width: 960px) {
+          .cl-root-viewport {
+            padding: 32px 16px;
+            align-items: flex-start;
+          }
+
+          .cl-main-wrapper {
+            padding: 16px 8px;
+          }
+
+          .cl-grid-container {
+            grid-template-columns: 1fr;
+            gap: 40px;
+          }
+
+          .cl-brand-column {
+            padding-left: 0;
+            align-items: center;
+            text-align: center;
+            gap: 28px;
+          }
+
+          .cl-brand-header {
+            align-items: center;
+          }
+
+          .cl-br-desktop {
+            display: none;
+          }
+
+          .cl-accent-bar {
+            margin: 18px auto 0;
+          }
+
+          .cl-card-column {
+            justify-content: center;
+          }
+
+          .cl-auth-card {
+            max-width: 490px;
+            padding: 34px 26px;
+            border-radius: 26px;
+          }
+
+          .cl-card-title {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 26px;
+          }
+
+          .cl-card-title strong {
+            white-space: normal;
+          }
+
+          .cl-ring-large, .cl-ring-glow, .cl-ring-small {
+            opacity: 0.35;
+          }
+        }
+
+        /* ── TELAS ULTRA COMPACTAS (< 400px) ── */
+        @media (max-width: 400px) {
+          .cl-auth-card {
+            padding: 28px 18px;
+          }
+          .cl-options-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+          }
+          .cl-submit-btn {
+            height: 60px;
+            font-size: 16.5px;
+          }
         }
       `}</style>
     </>
