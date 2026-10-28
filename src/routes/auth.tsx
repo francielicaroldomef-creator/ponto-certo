@@ -422,7 +422,12 @@ function AuthPage() {
                 onClick={handleTripleClick}
                 title="Portal Caroldo — clique 3× para acesso rápido"
               >
-                <CaroldoEmblem size={132} />
+                <img
+                  src="/assets/logo-caroldo.png"
+                  alt="Caroldo Prestação de Serviços Ltda"
+                  className="cl-brand-logo-img"
+                  style={{ width: "138px", height: "auto", objectFit: "contain", display: "block" }}
+                />
 
                 <div className="cl-scripture-box">
                   <p className="cl-verse">“O senhor é meu pastor, nada me faltará.”</p>
@@ -517,16 +522,16 @@ function AuthPage() {
           z-index: 0;
         }
 
-        /* Imagem de referência 3D como background sutil */
+        /* Imagem de referência 3D como background de alta fidelidade */
         .cl-bg-cover {
           position: absolute;
           inset: 0;
-          background:
-            radial-gradient(ellipse 900px 600px at 70% 48%, rgba(255, 90, 0, 0.16) 0%, transparent 70%),
-            radial-gradient(ellipse 700px 500px at 20% 90%, rgba(255, 75, 0, 0.09) 0%, transparent 65%),
-            radial-gradient(ellipse 600px 800px at 85% 15%, rgba(255, 110, 0, 0.12) 0%, transparent 60%),
-            linear-gradient(160deg, #0d0f14 0%, #08090c 45%, #150d08 100%);
+          background-image:
+            linear-gradient(to right, rgba(8, 9, 12, 0.92) 0%, rgba(8, 9, 12, 0.40) 50%, rgba(8, 9, 12, 0.70) 100%),
+            url('/assets/referencia-desktop.png');
           background-size: cover;
+          background-position: center right;
+          background-repeat: no-repeat;
         }
 
         /* Anéis 3D esculturais */
