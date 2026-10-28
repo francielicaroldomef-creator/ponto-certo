@@ -522,16 +522,9 @@ function AuthPage() {
           z-index: 0;
         }
 
-        /* Imagem de referência 3D como background de alta fidelidade */
+        /* Desativa a imagem de mockup que causava os textos duplicados */
         .cl-bg-cover {
-          position: absolute;
-          inset: 0;
-          background-image:
-            linear-gradient(to right, rgba(8, 9, 12, 0.92) 0%, rgba(8, 9, 12, 0.40) 50%, rgba(8, 9, 12, 0.70) 100%),
-            url('/assets/referencia-desktop.png');
-          background-size: cover;
-          background-position: center right;
-          background-repeat: no-repeat;
+          display: none;
         }
 
         /* Anéis 3D esculturais */
