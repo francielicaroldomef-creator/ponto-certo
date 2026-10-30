@@ -80,8 +80,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Portal do Supervisor" },
-      { name: "description", content: "Controle de presença, coberturas, ponto e descontos para serviços de limpeza." },
+      { title: "Sistema Integrado Caroldo" },
+      { name: "description", content: "Sistema Integrado Caroldo - Controle de presença, coberturas, ponto e faturamento para serviços de limpeza." },
     ],
     links: [
       {

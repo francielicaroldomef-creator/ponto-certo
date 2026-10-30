@@ -332,16 +332,24 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const brand = (
     <div
-      className="flex items-center gap-2 px-5 py-4 cursor-pointer select-none transition-opacity active:opacity-70"
+      className="flex items-center gap-3 px-4 py-3.5 cursor-pointer select-none transition-opacity active:opacity-70"
       onClick={handleTripleClick}
       title="Clique 3x para Acesso Rápido"
     >
-      <div className="grid h-8 w-8 place-items-center rounded-md bg-sidebar-primary font-bold text-sidebar-primary-foreground shadow-sm">
-        PS
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white p-0.5 shadow-sm overflow-hidden border border-border/20">
+        <img
+          src="/assets/logo-caroldo.png"
+          alt="Caroldo"
+          className="h-full w-full object-contain"
+        />
       </div>
-      <div className="leading-tight">
-        <p className="text-sm font-semibold text-sidebar-accent-foreground">Portal do Supervisor</p>
-        <p className="text-[11px] text-sidebar-foreground/60">Serviços de limpeza</p>
+      <div className="leading-tight min-w-0">
+        <p className="text-sm font-bold text-sidebar-accent-foreground tracking-tight">
+          Sistema Integrado Caroldo
+        </p>
+        <p className="text-[11px] text-sidebar-foreground/60">
+          Serviços de limpeza
+        </p>
       </div>
     </div>
   );
@@ -404,14 +412,18 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Menu className="h-5 w-5" />
             </Button>
             <div
-              className="flex items-center gap-2 cursor-pointer select-none"
+              className="flex items-center gap-2.5 cursor-pointer select-none"
               onClick={handleTripleClick}
               title="Clique 3x para Acesso Rápido"
             >
-              <div className="grid h-7 w-7 place-items-center rounded-md bg-primary font-bold text-primary-foreground text-xs shadow-sm">
-                PS
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white p-0.5 shadow-xs overflow-hidden border border-border/20">
+                <img
+                  src="/assets/logo-caroldo.png"
+                  alt="Caroldo"
+                  className="h-full w-full object-contain"
+                />
               </div>
-              <span className="font-semibold text-sm">Portal do Supervisor</span>
+              <span className="font-bold text-sm text-foreground">Sistema Integrado Caroldo</span>
             </div>
           </div>
         </header>
