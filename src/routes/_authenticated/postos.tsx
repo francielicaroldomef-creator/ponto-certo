@@ -46,6 +46,9 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/postos")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    contractId: (search.contractId as string) || undefined,
+  }),
   head: () => ({ meta: [{ title: "Postos de Trabalho — Portal do Supervisor" }] }),
   component: PostosHierarquicos,
 });
@@ -210,13 +213,28 @@ function generateCode(cityName: string, index: number, existingCodes: Set<string
 export function PostosHierarquicos() {
   const queryClient = useQueryClient();
   const { data: contracts, isLoading: isLoadingContracts } = useContracts();
+  const search = Route.useSearch();
 
-  const [selectedContractId, setSelectedContractId] = useState<string>("");
+  const [selectedContractId, setSelectedContractId] = useState<string>(() => {
+    if (search.contractId) return search.contractId;
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search).get("contractId");
+      if (p) return p;
+    }
+    return "";
+  });
   const [cities, setCities] = useState<CityGroupItem[]>([]);
   const [deletedPostIds, setDeletedPostIds] = useState<string[]>([]);
   const [activeCityTab, setActiveCityTab] = useState<string>("all");
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+
+  // Sync with search parameter if it changes
+  useEffect(() => {
+    if (search.contractId && search.contractId !== selectedContractId) {
+      setSelectedContractId(search.contractId);
+    }
+  }, [search.contractId]);
 
   // Auto-select first contract if none selected
   useEffect(() => {
@@ -224,6 +242,15 @@ export function PostosHierarquicos() {
       setSelectedContractId(contracts[0].id);
     }
   }, [contracts, selectedContractId]);
+
+  const handleContractChange = (newContractId: string) => {
+    setSelectedContractId(newContractId);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("contractId", newContractId);
+      window.history.replaceState({}, "", url.toString());
+    }
+  };
 
   const selectedContract = useMemo(() => {
     return (contracts ?? []).find((c) => c.id === selectedContractId);
@@ -1013,6 +1040,19 @@ export function PostosHierarquicos() {
 
   return (
     <div className="space-y-6 pb-28">
+      {/* Breadcrumb de Licitação */}
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <span>Licitação</span>
+        <span>/</span>
+        <a href="/contratos" className="hover:text-foreground hover:underline transition-colors font-medium">
+          Contratos
+        </a>
+        <span>/</span>
+        <span className="text-foreground font-semibold">
+          Postos de Trabalho {selectedContract ? `(${selectedContract.name || selectedContract.code})` : ""}
+        </span>
+      </div>
+
       {/* Datalist global padronizado com as cidades do RS */}
       <datalist id="rs-cities-datalist">
         {RS_CITIES.map((cidade) => (
@@ -1089,9 +1129,7 @@ export function PostosHierarquicos() {
               </label>
               <Select
                 value={selectedContractId}
-                onValueChange={(val) => {
-                  setSelectedContractId(val);
-                }}
+                onValueChange={handleContractChange}
               >
                 <SelectTrigger className="w-full bg-background font-medium text-left">
                   <SelectValue placeholder="Selecione o contrato..." />

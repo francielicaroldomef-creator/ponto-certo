@@ -1,9 +1,26 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import {
-  LayoutDashboard, FileSignature, MapPin, Users, CalendarDays, UserRoundPlus, ClipboardCheck, ShieldCheck,
-  FileText, AlertTriangle, BarChart3, Lock, Settings, LogOut, Menu, UsersRound,
+  LayoutDashboard,
+  FileSignature,
+  MapPin,
+  Users,
+  UserRoundPlus,
+  ClipboardCheck,
+  ShieldCheck,
+  FileText,
+  AlertTriangle,
+  BarChart3,
+  Lock,
+  Settings,
+  LogOut,
+  Menu,
+  UsersRound,
+  ChevronDown,
+  ChevronRight,
+  Briefcase,
+  FileSpreadsheet,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMe } from "@/hooks/use-auth";
@@ -11,40 +28,197 @@ import { ROLE_LABEL } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-
-const NAV = [
-  { group: "Operação", items: [
-    { to: "/painel", label: "Painel geral", icon: LayoutDashboard },
-    { to: "/conferencia", label: "Conferência diária", icon: ClipboardCheck },
-    { to: "/coberturas", label: "Coberturas", icon: ShieldCheck },
-    { to: "/efetivo", label: "Conferência do efetivo", icon: UsersRound },
-  ]},
-  { group: "Ponto", items: [
-    { to: "/documentos", label: "Documentos de ponto", icon: FileText },
-    { to: "/divergencias", label: "Divergências", icon: AlertTriangle },
-  ]},
-  { group: "Cadastros", items: [
-    { to: "/contratos", label: "Contratos", icon: FileSignature },
-    { to: "/postos", label: "Postos", icon: MapPin },
-    { to: "/funcionarios", label: "Funcionários", icon: Users },
-    { to: "/escalas", label: "Escalas", icon: CalendarDays },
-    { to: "/diaristas", label: "Diaristas", icon: UserRoundPlus },
-  ]},
-  { group: "Gestão", items: [
-    { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
-    { to: "/fechamentos", label: "Fechamentos", icon: Lock },
-    { to: "/usuarios", label: "Usuários e configurações", icon: Settings },
-  ]},
-] as const;
-
 import { clearQuickAccessSession } from "@/lib/quick-access";
 import { QuickAccessDialog, useTripleClick } from "@/components/quick-access-dialog";
 
+export interface NavLeafItem {
+  to: string;
+  label: string;
+  icon: any;
+}
+
+export interface NavBranchItem {
+  id: string;
+  label: string;
+  icon: any;
+  to?: string; // Rota principal opcional ao clicar no título
+  items: NavLeafItem[];
+}
+
+export type NavItem = NavLeafItem | NavBranchItem;
+
+export function isBranch(item: NavItem): item is NavBranchItem {
+  return "items" in item && Array.isArray((item as NavBranchItem).items);
+}
+
+export interface NavGroupSection {
+  group: string;
+  items: NavItem[];
+}
+
+export const NAV_HIERARCHY: NavGroupSection[] = [
+  {
+    group: "Operacional",
+    items: [
+      {
+        id: "efetividade",
+        label: "Efetividade",
+        icon: UsersRound,
+        items: [
+          { to: "/painel", label: "Painel geral", icon: LayoutDashboard },
+          { to: "/conferencia", label: "Conferência diária", icon: ClipboardCheck },
+          { to: "/coberturas", label: "Coberturas", icon: ShieldCheck },
+          { to: "/efetivo", label: "Conferência de efetivo", icon: UsersRound },
+          { to: "/funcionarios", label: "Funcionários", icon: Users },
+          { to: "/diaristas", label: "Diaristas", icon: UserRoundPlus },
+        ],
+      },
+      {
+        id: "ponto",
+        label: "Ponto eletrônico",
+        icon: FileSpreadsheet,
+        items: [
+          { to: "/documentos", label: "Documentos de ponto", icon: FileText },
+          { to: "/divergencias", label: "Divergências", icon: AlertTriangle },
+        ],
+      },
+    ],
+  },
+  {
+    group: "Licitação",
+    items: [
+      {
+        id: "contratos",
+        label: "Contratos",
+        icon: FileSignature,
+        to: "/contratos",
+        items: [
+          { to: "/postos", label: "Postos", icon: MapPin },
+        ],
+      },
+    ],
+  },
+  {
+    group: "Gestão",
+    items: [
+      { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
+      { to: "/fechamentos", label: "Fechamentos", icon: Lock },
+      { to: "/usuarios", label: "Usuários e configurações", icon: Settings },
+    ],
+  },
+];
+
 /** Áreas autorizadas para o perfil Supervisor (as demais são exclusivas do administrador). */
-export const SUPERVISOR_PATHS = ["/painel", "/conferencia", "/coberturas", "/efetivo", "/relatorios", "/fechamentos"] as const;
+export const SUPERVISOR_PATHS = [
+  "/painel",
+  "/conferencia",
+  "/coberturas",
+  "/efetivo",
+  "/relatorios",
+  "/fechamentos",
+] as const;
 
 export function isSupervisorOnly(roles: string[]): boolean {
   return roles.includes("supervisor") && !roles.includes("admin");
+}
+
+function NavSubmenu({
+  branch,
+  path,
+  onNavigate,
+}: {
+  branch: NavBranchItem;
+  path: string;
+  onNavigate?: () => void;
+}) {
+  const isBranchActive =
+    (branch.to && path.startsWith(branch.to)) ||
+    branch.items.some((it) => path.startsWith(it.to));
+
+  const [expanded, setExpanded] = useState<boolean>(true);
+
+  // Auto-expande se uma rota filha estiver ativa
+  useEffect(() => {
+    if (isBranchActive) {
+      setExpanded(true);
+    }
+  }, [isBranchActive]);
+
+  return (
+    <div className="flex flex-col">
+      <div
+        className={cn(
+          "flex items-center justify-between rounded-md px-2 py-1.5 text-sm font-medium transition-colors select-none",
+          isBranchActive
+            ? "text-sidebar-accent-foreground font-semibold"
+            : "text-sidebar-foreground/85 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+        )}
+      >
+        {branch.to ? (
+          <Link
+            to={branch.to}
+            onClick={onNavigate}
+            className={cn(
+              "flex flex-1 items-center gap-2.5 truncate",
+              path.startsWith(branch.to) && "text-sidebar-primary font-bold"
+            )}
+          >
+            <branch.icon className={cn("h-4 w-4 shrink-0", isBranchActive && "text-sidebar-primary")} />
+            <span className="truncate">{branch.label}</span>
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setExpanded((prev) => !prev)}
+            className="flex flex-1 items-center gap-2.5 truncate text-left"
+          >
+            <branch.icon className={cn("h-4 w-4 shrink-0", isBranchActive && "text-sidebar-primary")} />
+            <span className="truncate">{branch.label}</span>
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setExpanded((prev) => !prev);
+          }}
+          className="ml-1 rounded p-0.5 text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          aria-label={expanded ? `Recolher ${branch.label}` : `Expandir ${branch.label}`}
+        >
+          {expanded ? (
+            <ChevronDown className="h-4 w-4 shrink-0" />
+          ) : (
+            <ChevronRight className="h-4 w-4 shrink-0" />
+          )}
+        </button>
+      </div>
+
+      {expanded && (
+        <div className="ml-3 mt-0.5 flex flex-col border-l border-sidebar-border/60 pl-2 space-y-0.5">
+          {branch.items.map((it) => {
+            const active = path.startsWith(it.to);
+            return (
+              <Link
+                key={it.to}
+                to={it.to}
+                onClick={onNavigate}
+                className={cn(
+                  "flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors",
+                  active
+                    ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground shadow-xs"
+                    : "text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
+                )}
+              >
+                <it.icon className={cn("h-4 w-4 shrink-0", active && "text-sidebar-primary")} />
+                <span className="truncate">{it.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function NavList({
@@ -66,27 +240,73 @@ function NavList({
     return true;
   };
 
-  const groups = NAV.map((g) => ({
-    ...g,
-    items: g.items.filter((it) => filterFn(it.to)),
-  })).filter((g) => g.items.length > 0);
+  // Filtra itens e submenus preservando as permissões de acesso
+  const filteredGroups = NAV_HIERARCHY.map((groupSec) => {
+    const visibleItems: NavItem[] = [];
+
+    for (const item of groupSec.items) {
+      if (isBranch(item)) {
+        const allowedChildren = item.items.filter((leaf) => filterFn(leaf.to));
+        const isBranchRootAllowed = item.to ? filterFn(item.to) : false;
+
+        if (allowedChildren.length > 0 || isBranchRootAllowed) {
+          visibleItems.push({
+            ...item,
+            items: allowedChildren,
+          });
+        }
+      } else {
+        if (filterFn(item.to)) {
+          visibleItems.push(item);
+        }
+      }
+    }
+
+    return {
+      group: groupSec.group,
+      items: visibleItems,
+    };
+  }).filter((g) => g.items.length > 0);
 
   return (
-    <nav className="flex flex-col gap-5 px-3 py-4">
-      {groups.map((g) => (
-        <div key={g.group}>
-          <p className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/50">{g.group}</p>
-          {g.items.map((it) => {
-            const active = path.startsWith(it.to);
-            return (
-              <Link key={it.to} to={it.to} onClick={onNavigate}
-                className={cn("flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors",
-                  active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground")}>
-                <it.icon className={cn("h-4 w-4", active && "text-sidebar-primary")} />
-                {it.label}
-              </Link>
-            );
-          })}
+    <nav className="flex flex-col gap-4 px-3 py-4">
+      {filteredGroups.map((g) => (
+        <div key={g.group} className="space-y-1">
+          <p className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/50">
+            {g.group}
+          </p>
+          <div className="space-y-1">
+            {g.items.map((it) => {
+              if (isBranch(it)) {
+                return (
+                  <NavSubmenu
+                    key={it.id}
+                    branch={it}
+                    path={path}
+                    onNavigate={onNavigate}
+                  />
+                );
+              }
+
+              const active = path.startsWith(it.to);
+              return (
+                <Link
+                  key={it.to}
+                  to={it.to}
+                  onClick={onNavigate}
+                  className={cn(
+                    "flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors",
+                    active
+                      ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground shadow-xs"
+                      : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
+                  )}
+                >
+                  <it.icon className={cn("h-4 w-4 shrink-0", active && "text-sidebar-primary")} />
+                  <span className="truncate">{it.label}</span>
+                </Link>
+              );
+            })}
+          </div>
         </div>
       ))}
     </nav>
@@ -116,7 +336,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       onClick={handleTripleClick}
       title="Clique 3x para Acesso Rápido"
     >
-      <div className="grid h-8 w-8 place-items-center rounded-md bg-sidebar-primary font-bold text-sidebar-primary-foreground shadow-sm">PS</div>
+      <div className="grid h-8 w-8 place-items-center rounded-md bg-sidebar-primary font-bold text-sidebar-primary-foreground shadow-sm">
+        PS
+      </div>
       <div className="leading-tight">
         <p className="text-sm font-semibold text-sidebar-accent-foreground">Portal do Supervisor</p>
         <p className="text-[11px] text-sidebar-foreground/60">Serviços de limpeza</p>
@@ -126,7 +348,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const footer = (
     <div className="border-t border-sidebar-border p-3 text-xs text-sidebar-foreground/80">
-      <p className="truncate font-medium text-sidebar-accent-foreground">{me?.profile?.full_name ?? me?.user.email}</p>
+      <p className="truncate font-medium text-sidebar-accent-foreground">
+        {me?.profile?.full_name ?? me?.user.email}
+      </p>
       <p className="truncate">
         {me?.isMasterAdmin
           ? "Administradora Master"
@@ -134,7 +358,12 @@ export function AppShell({ children }: { children: ReactNode }) {
           ? me.roles.map((r) => ROLE_LABEL[r]).join(", ")
           : "Sem perfil atribuído"}
       </p>
-      <Button variant="ghost" size="sm" className="mt-2 w-full justify-start px-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" onClick={signOut}>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="mt-2 w-full justify-start px-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+        onClick={signOut}
+      >
         <LogOut className="mr-2 h-4 w-4" /> Sair
       </Button>
     </div>
@@ -151,10 +380,14 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="flex w-72 flex-col bg-sidebar p-0">
-          <SheetTitle className="sr-only">Menu</SheetTitle>
+          <SheetTitle className="sr-only">Menu de Navegação</SheetTitle>
           {brand}
           <div className="flex-1 overflow-y-auto">
-            <NavList roles={me?.roles ?? []} allowedModules={me?.allowedModules} onNavigate={() => setOpen(false)} />
+            <NavList
+              roles={me?.roles ?? []}
+              allowedModules={me?.allowedModules}
+              onNavigate={() => setOpen(false)}
+            />
           </div>
           {footer}
         </SheetContent>
@@ -162,13 +395,22 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 flex items-center justify-between border-b bg-card px-4 py-2 lg:hidden">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => setOpen(true)} aria-label="Abrir menu"><Menu className="h-5 w-5" /></Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setOpen(true)}
+              aria-label="Abrir menu"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
             <div
               className="flex items-center gap-2 cursor-pointer select-none"
               onClick={handleTripleClick}
               title="Clique 3x para Acesso Rápido"
             >
-              <div className="grid h-7 w-7 place-items-center rounded-md bg-primary font-bold text-primary-foreground text-xs shadow-sm">PS</div>
+              <div className="grid h-7 w-7 place-items-center rounded-md bg-primary font-bold text-primary-foreground text-xs shadow-sm">
+                PS
+              </div>
               <span className="font-semibold text-sm">Portal do Supervisor</span>
             </div>
           </div>
