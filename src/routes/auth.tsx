@@ -10,6 +10,8 @@
  *   • Fundo: Atmosfera Dark Sci-Fi Corporate com anéis 3D e reflexos no chão.
  *   • Funcionalidades: Autenticação Supabase real, lembrar e-mail, recuperação e atalho
  *     de clique triplo para QuickAccessDialog.
+ *
+ * Atualizado e sincronizado com Lovable.
  */
 
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
