@@ -19,6 +19,7 @@ import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { QuickAccessDialog, useTripleClick } from "@/components/quick-access-dialog";
+import { getQuickAccessSession } from "@/lib/quick-access";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -331,10 +332,23 @@ function LoginForm({ busy, onSubmit, onForgot }: LoginFormProps) {
 // ---------------------------------------------------------------------------
 // Página Principal de Autenticação
 // ---------------------------------------------------------------------------
-function AuthPage() {
+export function AuthPage() {
   const [busy, setBusy] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
   const navigate = useNavigate();
+
+  // Redireciona usuários já autenticados diretamente para o painel
+  useEffect(() => {
+    if (getQuickAccessSession()) {
+      navigate({ to: "/painel" });
+      return;
+    }
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user) {
+        navigate({ to: "/painel" });
+      }
+    });
+  }, [navigate]);
 
   // Atalho de clique triplo para abrir o QuickAccessDialog
   const handleTripleClick = useTripleClick(() => setQuickOpen(true), 1200);
