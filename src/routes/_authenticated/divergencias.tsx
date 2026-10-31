@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -16,7 +16,7 @@ import { useMe } from "@/hooks/use-auth";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export const Route = createFileRoute("/_authenticated/divergencias")({
-  head: () => ({ meta: [{ title: "Divergências — Portal do Supervisor" }, { name: "description", content: "Fila de divergências entre ponto, escala e presença." }] }),
+  head: () => ({ meta: [{ title: "Divergências — Sistema Integrado Caroldo" }, { name: "description", content: "Fila de divergências entre ponto, escala e presença." }] }),
   component: Divergencias,
 });
 
@@ -111,3 +111,4 @@ function Divergencias() {
     </div>
   );
 }
+

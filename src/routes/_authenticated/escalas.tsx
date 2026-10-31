@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { CalendarPlus } from "lucide-react";
@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export const Route = createFileRoute("/_authenticated/escalas")({
-  head: () => ({ meta: [{ title: "Escalas — Portal do Supervisor" }] }),
+  head: () => ({ meta: [{ title: "Escalas — Sistema Integrado Caroldo" }] }),
   component: Escalas,
 });
 
@@ -55,3 +55,4 @@ function Escalas() {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -19,7 +19,7 @@ import { useMe } from "@/hooks/use-auth";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export const Route = createFileRoute("/_authenticated/documentos")({
-  head: () => ({ meta: [{ title: "Documentos de ponto — Portal do Supervisor" }, { name: "description", content: "Envio e extração de cartões de ponto em PDF." }] }),
+  head: () => ({ meta: [{ title: "Documentos de ponto — Sistema Integrado Caroldo" }, { name: "description", content: "Envio e extração de cartões de ponto em PDF." }] }),
   component: Documentos,
 });
 
@@ -196,3 +196,4 @@ function Documentos() {
     </div>
   );
 }
+

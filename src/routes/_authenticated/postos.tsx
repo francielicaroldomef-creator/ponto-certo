@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+﻿import { useState, useEffect, useMemo, useCallback } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,7 +49,7 @@ export const Route = createFileRoute("/_authenticated/postos")({
   validateSearch: (search: Record<string, unknown>) => ({
     contractId: (search.contractId as string) || undefined,
   }),
-  head: () => ({ meta: [{ title: "Postos de Trabalho — Portal do Supervisor" }] }),
+  head: () => ({ meta: [{ title: "Postos de Trabalho — Sistema Integrado Caroldo" }] }),
   component: PostosHierarquicos,
 });
 
@@ -1689,3 +1689,4 @@ export function PostosHierarquicos() {
     </div>
   );
 }
+

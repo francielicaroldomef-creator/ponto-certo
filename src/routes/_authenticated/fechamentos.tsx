@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -19,7 +19,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export const Route = createFileRoute("/_authenticated/fechamentos")({
-  head: () => ({ meta: [{ title: "Fechamentos — Portal do Supervisor" }, { name: "description", content: "Fechamento mensal do faturamento por contrato." }] }),
+  head: () => ({ meta: [{ title: "Fechamentos — Sistema Integrado Caroldo" }, { name: "description", content: "Fechamento mensal do faturamento por contrato." }] }),
   component: Fechamentos,
 });
 
@@ -136,3 +136,4 @@ function Fechamentos() {
     </div>
   );
 }
+

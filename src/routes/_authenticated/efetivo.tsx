@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { loadPeriod } from "@/lib/data";
@@ -11,7 +11,7 @@ import { DatePicker } from "@/components/date-picker";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/efetivo")({
-  head: () => ({ meta: [{ title: "Conferência do efetivo — Portal do Supervisor" }, { name: "description", content: "Efetivo contratado x efetivo presente por dia." }] }),
+  head: () => ({ meta: [{ title: "Conferência do efetivo — Sistema Integrado Caroldo" }, { name: "description", content: "Efetivo contratado x efetivo presente por dia." }] }),
   component: Efetivo,
 });
 
@@ -81,3 +81,4 @@ function Efetivo() {
     </div>
   );
 }
+

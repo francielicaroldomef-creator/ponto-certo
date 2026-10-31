@@ -1,4 +1,4 @@
-import { createFileRoute, Navigate, Outlet, redirect, useRouterState } from "@tanstack/react-router";
+﻿import { createFileRoute, Navigate, Outlet, redirect, useRouterState } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell, SUPERVISOR_PATHS, isSupervisorOnly } from "@/components/app-shell";
@@ -48,3 +48,4 @@ export const Route = createFileRoute("/_authenticated")({
     </AppShell>
   ),
 });
+

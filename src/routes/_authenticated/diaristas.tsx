@@ -1,10 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { CrudPage } from "@/components/crud-page";
 import { DemoBadge, Pill } from "@/components/ui-kit";
 import { brlValue } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/diaristas")({
-  head: () => ({ meta: [{ title: "Diaristas — Portal do Supervisor" }] }),
+  head: () => ({ meta: [{ title: "Diaristas — Sistema Integrado Caroldo" }] }),
   component: () => (
     <CrudPage title="Diaristas" table="day_workers" order="code" search={(r) => `${r.code} ${r.name}`}
       description="Valores padrão; cada cobertura pode ter um valor específico combinado."
@@ -29,3 +29,4 @@ export const Route = createFileRoute("/_authenticated/diaristas")({
       ]} />
   ),
 });
+

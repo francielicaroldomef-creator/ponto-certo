@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { loadPeriod } from "@/lib/data";
@@ -9,7 +9,7 @@ import { DatePicker } from "@/components/date-picker";
 import { useMe } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/painel")({
-  head: () => ({ meta: [{ title: "Painel geral — Portal do Supervisor" }] }),
+  head: () => ({ meta: [{ title: "Painel geral — Sistema Integrado Caroldo" }] }),
   component: Painel,
 });
 
@@ -111,3 +111,4 @@ function Painel() {
     </div>
   );
 }
+

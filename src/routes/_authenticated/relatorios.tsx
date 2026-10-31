@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { loadPeriod, type DayRow } from "@/lib/data";
@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export const Route = createFileRoute("/_authenticated/relatorios")({
-  head: () => ({ meta: [{ title: "Relatórios — Portal do Supervisor" }, { name: "description", content: "Relatórios de faltas, coberturas e descontos com exportação CSV e PDF." }] }),
+  head: () => ({ meta: [{ title: "Relatórios — Sistema Integrado Caroldo" }, { name: "description", content: "Relatórios de faltas, coberturas e descontos com exportação CSV e PDF." }] }),
   component: Relatorios,
 });
 
@@ -147,3 +147,4 @@ function Relatorios() {
     </div>
   );
 }
+

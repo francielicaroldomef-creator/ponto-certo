@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -37,7 +37,7 @@ import { ShiftTimeline } from "@/components/shift-timeline";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export const Route = createFileRoute("/_authenticated/coberturas")({
-  head: () => ({ meta: [{ title: "Coberturas — Portal do Supervisor" }] }),
+  head: () => ({ meta: [{ title: "Coberturas — Sistema Integrado Caroldo" }] }),
   component: Coberturas,
 });
 
@@ -550,3 +550,4 @@ function toMinSafe(t: string) {
   const [h, m] = t.split(":").map(Number);
   return (h || 0) * 60 + (m || 0);
 }
+

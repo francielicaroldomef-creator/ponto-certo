@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,7 +26,7 @@ import {
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export const Route = createFileRoute("/_authenticated/usuarios")({
-  head: () => ({ meta: [{ title: "Usuários e configurações — Portal do Supervisor" }, { name: "description", content: "Perfis de acesso, supervisores por contrato e auditoria." }] }),
+  head: () => ({ meta: [{ title: "Usuários e configurações — Sistema Integrado Caroldo" }, { name: "description", content: "Perfis de acesso, supervisores por contrato e auditoria." }] }),
   component: Usuarios,
 });
 
@@ -491,3 +491,4 @@ function Usuarios() {
     </div>
   );
 }
+

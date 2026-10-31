@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+﻿import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -18,7 +18,7 @@ import { AbsenceTreatment } from "@/components/absence-treatment";
 import { useMe } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/conferencia")({
-  head: () => ({ meta: [{ title: "Conferência diária — Portal do Supervisor" }] }),
+  head: () => ({ meta: [{ title: "Conferência diária — Sistema Integrado Caroldo" }] }),
   component: Conferencia,
 });
 
@@ -321,3 +321,4 @@ function EditDialog({ row, onClose, onSaved, disabled }: { row: DayRow; onClose:
     </Dialog>
   );
 }
+

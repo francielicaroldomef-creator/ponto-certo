@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
@@ -43,7 +43,7 @@ import {
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export const Route = createFileRoute("/_authenticated/funcionarios")({
-  head: () => ({ meta: [{ title: "Funcionários — Portal do Supervisor" }] }),
+  head: () => ({ meta: [{ title: "Funcionários — Sistema Integrado Caroldo" }] }),
   component: Funcionarios,
 });
 
@@ -1119,3 +1119,4 @@ function Assignments({ emp, onClose }: { emp: any; onClose: () => void }) {
     </Dialog>
   );
 }
+

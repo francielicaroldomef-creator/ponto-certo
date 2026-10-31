@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+﻿import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { MapPin, Plus, FileSignature } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { fmtDate } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/contratos")({
-  head: () => ({ meta: [{ title: "Contratos — Portal do Supervisor" }] }),
+  head: () => ({ meta: [{ title: "Contratos — Sistema Integrado Caroldo" }] }),
   component: Contratos,
 });
 
@@ -178,3 +178,4 @@ function Contratos() {
     </div>
   );
 }
+
