@@ -32,8 +32,8 @@ export interface ConflictingRecordInfo {
   label: string;
   start_time: string;
   end_time: string;
-  break_start?: string | null;
-  break_end?: string | null;
+  break_start?: string | null | undefined;
+  break_end?: string | null | undefined;
   overlapMinutes: number;
 }
 
@@ -107,6 +107,7 @@ export function treatmentConflict(
   const conflicts = findConflictingTreatments(schedule, attendance, candidate, coverages, treatments, isCoverage);
   if (conflicts.length === 0) return null;
   const first = conflicts[0];
+  if (!first) return null;
   const label = first.isCoverage ? "cobertura" : first.kind === "dispensa" ? "dispensa sem desconto" : "Sem cobertura, com desconto";
   return `Conflito com ${label} (${first.start_time.slice(0, 5)}–${first.end_time.slice(0, 5)}) da mesma ausência. Edite ou cancele/remova o tratamento anterior antes de salvar este período.`;
 }
@@ -117,7 +118,7 @@ export async function getTreatmentConflicts(
   attendance: AttendanceLike,
   candidate: TreatmentRecord,
   isCoverage: boolean
-): Promise<{ conflicts: ConflictingRecordInfo[]; attendanceId?: string }> {
+): Promise<{ conflicts: ConflictingRecordInfo[]; attendanceId?: string | undefined }> {
   const { data: a, error } = await supabase.from("attendance").select("id").eq("schedule_id", schedule.id).maybeSingle();
   if (error) throw error;
   const [c, t] = await Promise.all([
@@ -146,6 +147,7 @@ export async function validateTreatmentConflict(
   const { conflicts } = await getTreatmentConflicts(schedule, attendance, candidate, isCoverage);
   if (conflicts.length > 0) {
     const first = conflicts[0];
+    if (!first) return;
     const label = first.isCoverage ? "cobertura" : first.kind === "dispensa" ? "dispensa sem desconto" : "Sem cobertura, com desconto";
     throw new Error(`Conflito com ${label} (${first.start_time.slice(0, 5)}–${first.end_time.slice(0, 5)}) da mesma ausência. Edite ou cancele/remova o tratamento anterior antes de salvar este período.`);
   }
@@ -223,6 +225,18 @@ export function suggestNextFreeInterval(
 
   // Pre-fill with the first pending interval
   const first = pending[0];
+  if (!first) {
+    return {
+      start: schedule.start_time.slice(0, 5),
+      end: schedule.end_time.slice(0, 5),
+      fullyCovered: false,
+      pendingMinutes: total(pending),
+      pendingIntervals: pending,
+      coveredIntervals: covered,
+      waivedIntervals: waived,
+      discountedIntervals: discounted,
+    };
+  }
   return {
     start: minToHHMM(first[0]),
     end: minToHHMM(first[1]),
@@ -274,6 +288,7 @@ export function detectLegacyConflicts(
     for (let j = i + 1; j < activeRecords.length; j++) {
       const rec1 = activeRecords[i];
       const rec2 = activeRecords[j];
+      if (!rec1 || !rec2) continue;
       const overlap = intersect(rec1.intervals, rec2.intervals);
       const overlapMin = total(overlap);
       if (overlapMin > 0) {

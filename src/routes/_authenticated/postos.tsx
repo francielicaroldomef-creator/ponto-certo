@@ -2,6 +2,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { useContracts } from "@/hooks/use-auth";
 import { upsertContractPostsBatch, type BatchPostInput } from "@/lib/data";
 import { RS_CITIES, isRSCity } from "@/lib/rs-cities";
@@ -45,9 +46,18 @@ import {
   X,
 } from "lucide-react";
 
+/** posts/contracts rows, widened with the columns added by migration 0004. */
+type PostRow = Database["public"]["Tables"]["posts"]["Row"] & {
+  city?: string | null;
+  workplace?: string | null;
+};
+type ContractRow = Database["public"]["Tables"]["contracts"]["Row"] & {
+  city?: string | null;
+};
+
 export const Route = createFileRoute("/_authenticated/postos")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    contractId: (search.contractId as string) || undefined,
+  validateSearch: (search: Record<string, unknown>): { contractId?: string | undefined } => ({
+    contractId: (search["contractId"] as string) || undefined,
   }),
   head: () => ({ meta: [{ title: "Postos de Trabalho — Sistema Integrado Caroldo" }] }),
   component: PostosHierarquicos,
