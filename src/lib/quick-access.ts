@@ -44,6 +44,29 @@ export const AVAILABLE_MODULES: { path: string; label: string; group: string }[]
   { path: "/usuarios", label: "Usuários e configurações", group: "Gestão" },
 ];
 
+export const DEFAULT_MASTER_SESSION: QuickAccessSession = {
+  id: "francieli-admin-master",
+  name: "Francieli (Administradora)",
+  role: "admin",
+  allowedContracts: [], // Todos os contratos
+  allowedModules: AVAILABLE_MODULES.map((m) => m.path), // Todos os módulos
+  isMasterAdmin: true,
+  timestamp: Date.now(),
+};
+
+/**
+ * Garante que uma sessão ativa exista no armazenamento local.
+ * Se nenhuma sessão estiver gravada, inicializa com o perfil Master Administrador.
+ */
+export function ensureDefaultSession(): QuickAccessSession {
+  let session = getQuickAccessSession();
+  if (!session) {
+    session = { ...DEFAULT_MASTER_SESSION, timestamp: Date.now() };
+    setQuickAccessSession(session);
+  }
+  return session;
+}
+
 let memoryStorage: Record<string, string> = {};
 
 function getStorageItem(key: string): string | null {

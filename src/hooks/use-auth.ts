@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { getQuickAccessSession } from "@/lib/quick-access";
+import { ensureDefaultSession, getQuickAccessSession } from "@/lib/quick-access";
 
 export type Role = "admin" | "supervisor" | "conferente" | "financeiro";
 
@@ -19,8 +19,11 @@ export function useMe() {
   return useQuery<CurrentUser | null>({
     queryKey: ["me"],
     queryFn: async () => {
-      // 1. Verifica sessão de acesso rápido (clique triplo)
-      const quick = getQuickAccessSession();
+      // 1. Verifica sessão de acesso rápido ou sessão automática padrão
+      let quick = getQuickAccessSession();
+      if (!quick && typeof window !== "undefined") {
+        quick = ensureDefaultSession();
+      }
       if (quick) {
         const r = [quick.role];
         return {

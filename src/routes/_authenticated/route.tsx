@@ -1,10 +1,8 @@
-﻿import { createFileRoute, Navigate, Outlet, redirect, useRouterState } from "@tanstack/react-router";
+﻿import { createFileRoute, Navigate, Outlet, useRouterState } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { AppShell, SUPERVISOR_PATHS, isSupervisorOnly } from "@/components/app-shell";
 import { useMe } from "@/hooks/use-auth";
-
-import { getQuickAccessSession } from "@/lib/quick-access";
+import { ensureDefaultSession, getQuickAccessSession } from "@/lib/quick-access";
 
 /** Blocks direct URL access to administrative areas for the Supervisor profile. */
 function RoleGuard({ children }: { children: ReactNode }) {
@@ -35,10 +33,10 @@ function RoleGuard({ children }: { children: ReactNode }) {
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
-    const quick = getQuickAccessSession();
-    if (quick) return;
-    const { data } = await supabase.auth.getUser();
-    if (!data.user) throw redirect({ to: "/auth" });
+    let quick = getQuickAccessSession();
+    if (!quick) {
+      quick = ensureDefaultSession();
+    }
   },
   component: () => (
     <AppShell>

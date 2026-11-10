@@ -14,14 +14,18 @@
  * Atualizado e sincronizado com Lovable.
  */
 
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { QuickAccessDialog, useTripleClick } from "@/components/quick-access-dialog";
-import { getQuickAccessSession } from "@/lib/quick-access";
+import { ensureDefaultSession, getQuickAccessSession } from "@/lib/quick-access";
 
 export const Route = createFileRoute("/auth")({
+  beforeLoad: () => {
+    ensureDefaultSession();
+    throw redirect({ to: "/painel" });
+  },
   head: () => ({
     meta: [
       { title: "Caroldo | Acesso ao sistema de gestão" },

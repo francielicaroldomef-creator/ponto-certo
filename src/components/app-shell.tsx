@@ -28,7 +28,7 @@ import { ROLE_LABEL } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { clearQuickAccessSession } from "@/lib/quick-access";
+import { clearQuickAccessSession, ensureDefaultSession } from "@/lib/quick-access";
 import { QuickAccessDialog, useTripleClick } from "@/components/quick-access-dialog";
 
 export interface NavLeafItem {
@@ -327,7 +327,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     qc.clear();
     clearQuickAccessSession();
     await supabase.auth.signOut();
-    navigate({ to: "/auth", replace: true });
+    ensureDefaultSession();
+    navigate({ to: "/painel", replace: true });
   };
 
   const brand = (
