@@ -1,4 +1,4 @@
-﻿import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { loadPeriod } from "@/lib/data";
@@ -265,9 +265,9 @@ function Painel() {
                   </span>
                   <Building2 className="h-5 w-5 text-muted-foreground" />
                 </div>
-                <h3 className="mt-3 text-lg font-bold text-foreground">CAROLDO / M&F</h3>
+                <h3 className="mt-3 text-lg font-bold text-foreground">CAROLDO · M&F · HELOARTH</h3>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Contratos por empresa, centros de custos, rateio proporcional da sede e resultado financeiro.
+                  Contratos das 3 empresas, centros de custos, rateio proporcional da sede e resultado financeiro consolidado.
                 </p>
               </div>
               <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">

@@ -158,12 +158,13 @@ describe("🌟 UNIFICAÇÃO CAROLDO GESTÃO — FROTAS, SUPERVISOR E CAROLDO / M
     expect(conflictRes.error).toContain("Já existe reserva ativa");
   });
 
-  it("5. CAROLDO / M&F: rateio proporcional da sede e apuração de resultado por contrato", () => {
+  it("5. CAROLDO / M&F / HELOARTH: rateio proporcional da sede e apuração de resultado por contrato", () => {
     saveHQExpense("2026-11", 50000);
     saveContractRevenue("2026-11", "CT-001", 100000);
+    saveContractRevenue("2026-11", "CT-005", 94000);
 
     const results = calculateCompanyResults("2026-11");
-    expect(results.rows.length).toBeGreaterThanOrEqual(4);
+    expect(results.rows.length).toBeGreaterThanOrEqual(6);
 
     const ct1 = results.rows.find((r) => r.contractId === "CT-001");
     expect(ct1).toBeDefined();
@@ -173,10 +174,12 @@ describe("🌟 UNIFICAÇÃO CAROLDO GESTÃO — FROTAS, SUPERVISOR E CAROLDO / M
     expect(ct1?.totalCost).toBe(ct1!.laborCost + ct1!.fleetCost + ct1!.hqShareCost);
     expect(ct1?.netResult).toBe(ct1!.revenue! - ct1!.totalCost);
 
-    // Comparativo entre empresas
+    // Comparativo entre as 3 empresas
     expect(COMPANIES.CAROLDO.name).toContain("Caroldo");
     expect(COMPANIES.MF.name).toContain("M&F");
+    expect(COMPANIES.HELOARTH.name).toContain("Heloarth");
     expect(results.byCompany.CAROLDO.revenue).toBeGreaterThanOrEqual(100000);
+    expect(results.byCompany.HELOARTH.revenue).toBeGreaterThanOrEqual(94000);
   });
 
   it("6. Módulos unificados: rotas de Frotas e Resultado registradas em AVAILABLE_MODULES", () => {
@@ -192,3 +195,4 @@ describe("🌟 UNIFICAÇÃO CAROLDO GESTÃO — FROTAS, SUPERVISOR E CAROLDO / M
     expect(paths).toContain("/resultado");
   });
 });
+

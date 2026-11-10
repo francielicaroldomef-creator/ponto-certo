@@ -301,3 +301,4 @@ function FrotasDashboardPage() {
     </div>
   );
 }
+

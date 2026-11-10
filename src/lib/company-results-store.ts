@@ -11,7 +11,7 @@
 
 import { getFuelEntries, getMaintenanceOrders } from "./fleet-store";
 
-export type OperatingCompany = "CAROLDO" | "MF";
+export type OperatingCompany = "CAROLDO" | "MF" | "HELOARTH";
 
 export interface CompanyInfo {
   code: OperatingCompany;
@@ -32,6 +32,12 @@ export const COMPANIES: Record<OperatingCompany, CompanyInfo> = {
     name: "M&F Prestação de Serviços Ltda",
     cnpj: "98.765.432/0001-10",
     city: "Montenegro / RS",
+  },
+  HELOARTH: {
+    code: "HELOARTH",
+    name: "Heloarth Serviços e Gestão Ltda",
+    cnpj: "45.678.901/0001-23",
+    city: "Porto Alegre / RS",
   },
 };
 
@@ -68,6 +74,8 @@ const DEFAULT_CONTRACTS_META: ContractMeta[] = [
   { id: "CT-002", description: "Limpeza Industrial e Conservação · Beta", company: "MF", headcount: 18, laborCost: 46200 },
   { id: "CT-003", description: "Manutenção Predial e Portaria · Gama", company: "CAROLDO", headcount: 10, laborCost: 29500 },
   { id: "CT-004", description: "Apoio Logístico e Movimentação · Delta", company: "MF", headcount: 12, laborCost: 33800 },
+  { id: "CT-005", description: "Serviços Especializados e Gestão · Heloarth", company: "HELOARTH", headcount: 15, laborCost: 41200 },
+  { id: "CT-006", description: "Apoio Administrativo e Facilities · Heloarth", company: "HELOARTH", headcount: 8, laborCost: 22800 },
 ];
 
 const DEFAULT_HQ_EXPENSES: Record<string, number> = {
@@ -80,8 +88,12 @@ const DEFAULT_REVENUES: Record<string, number> = {
   "2026-11|CT-002": 105000,
   "2026-11|CT-003": 68000,
   "2026-11|CT-004": 79000,
+  "2026-11|CT-005": 94000,
+  "2026-11|CT-006": 58000,
   "2026-10|CT-001": 87500,
   "2026-10|CT-002": 102000,
+  "2026-10|CT-005": 91500,
+  "2026-10|CT-006": 56000,
 };
 
 function readStorage<T>(key: string, fallback: T): T {
@@ -195,9 +207,10 @@ export function calculateCompanyResults(competence: string): {
   const byCompany: Record<OperatingCompany, { revenue: number; cost: number; result: number; margin: number }> = {
     CAROLDO: { revenue: 0, cost: 0, result: 0, margin: 0 },
     MF: { revenue: 0, cost: 0, result: 0, margin: 0 },
+    HELOARTH: { revenue: 0, cost: 0, result: 0, margin: 0 },
   };
 
-  for (const cmp of ["CAROLDO", "MF"] as OperatingCompany[]) {
+  for (const cmp of ["CAROLDO", "MF", "HELOARTH"] as OperatingCompany[]) {
     const cmpRows = rows.filter((r) => r.company === cmp);
     const rev = cmpRows.reduce((acc, r) => acc + (r.revenue ?? 0), 0);
     const cost = cmpRows.reduce((acc, r) => acc + r.totalCost, 0);
@@ -222,3 +235,4 @@ export function calculateCompanyResults(competence: string): {
     byCompany,
   };
 }
+

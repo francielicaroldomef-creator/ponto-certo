@@ -19,16 +19,18 @@ import {
   Car,
   PieChart,
   Edit3,
+  Layers,
 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/resultado")({
-  head: () => ({ meta: [{ title: "Resultado por Empresa — CAROLDO / M&F" }] }),
+  head: () => ({ meta: [{ title: "Resultado por Empresa — CAROLDO · M&F · HELOARTH" }] }),
   component: ResultadoEmpresasPage,
 });
 
 function ResultadoEmpresasPage() {
   const [competence, setCompetence] = useState("2026-11");
+  const [selectedCompany, setSelectedCompany] = useState<"ALL" | OperatingCompany>("ALL");
   const [hqModalOpen, setHqModalOpen] = useState(false);
   const [revenueModalOpen, setRevenueModalOpen] = useState(false);
   const [selectedContractId, setSelectedContractId] = useState("CT-001");
@@ -51,12 +53,17 @@ function ResultadoEmpresasPage() {
     toast.success("Despesas da sede atualizadas com recálculo do rateio!");
   };
 
+  const filteredRows =
+    selectedCompany === "ALL"
+      ? results.rows
+      : results.rows.filter((r) => r.company === selectedCompany);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <PageHeader
-          title="Resultado Operacional CAROLDO & M&F"
-          description="Apuração de receitas, custos de pessoal, gastos de frota e rateio proporcional da sede entre as empresas e contratos."
+          title="Resultado das Empresas: CAROLDO · M&F · HELOARTH"
+          description="Apuração gerencial de receitas, custo de mão de obra direta, gastos de frota e rateio proporcional da sede entre as 3 empresas do grupo."
         />
         <div className="flex items-center gap-3">
           <input
@@ -78,62 +85,69 @@ function ResultadoEmpresasPage() {
         </div>
       </div>
 
-      {/* Cards Comparativos por Empresa: CAROLDO vs M&F */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {(["CAROLDO", "MF"] as OperatingCompany[]).map((cmp) => {
+      {/* Cards Comparativos das Três Empresas */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {(["CAROLDO", "MF", "HELOARTH"] as OperatingCompany[]).map((cmp) => {
           const compInfo = COMPANIES[cmp];
           const data = results.byCompany[cmp];
           const isProfitable = data.result >= 0;
+          const isSelected = selectedCompany === cmp;
+
+          const themeStyles =
+            cmp === "CAROLDO"
+              ? "border-primary/40 bg-gradient-to-br from-card to-primary/5 hover:border-primary"
+              : cmp === "MF"
+              ? "border-blue-500/40 bg-gradient-to-br from-card to-blue-500/5 hover:border-blue-500"
+              : "border-purple-500/40 bg-gradient-to-br from-card to-purple-500/5 hover:border-purple-500";
+
+          const iconStyles =
+            cmp === "CAROLDO"
+              ? "bg-primary/10 text-primary"
+              : cmp === "MF"
+              ? "bg-blue-500/10 text-blue-500"
+              : "bg-purple-500/10 text-purple-500";
 
           return (
             <div
               key={cmp}
-              className={`rounded-xl border p-5 shadow-xs transition-all ${
-                cmp === "CAROLDO"
-                  ? "border-primary/40 bg-gradient-to-br from-card to-primary/5"
-                  : "border-blue-500/40 bg-gradient-to-br from-card to-blue-500/5"
+              onClick={() => setSelectedCompany(selectedCompany === cmp ? "ALL" : cmp)}
+              className={`cursor-pointer rounded-xl border p-5 shadow-xs transition-all ${themeStyles} ${
+                isSelected ? "ring-2 ring-primary ring-offset-2" : ""
               }`}
             >
               <div className="flex items-center justify-between pb-3 border-b border-border">
                 <div className="flex items-center gap-2.5">
-                  <div
-                    className={`rounded-lg p-2 ${
-                      cmp === "CAROLDO"
-                        ? "bg-primary/10 text-primary"
-                        : "bg-blue-500/10 text-blue-500"
-                    }`}
-                  >
+                  <div className={`rounded-lg p-2 ${iconStyles}`}>
                     <Building2 className="h-5 w-5" />
                   </div>
                   <div>
-                    <span className="text-xs font-semibold tracking-wider uppercase text-muted-foreground">
+                    <span className="text-[10px] font-bold tracking-wider uppercase text-muted-foreground">
                       {compInfo.code}
                     </span>
-                    <h3 className="font-bold text-base text-foreground leading-tight">
+                    <h3 className="font-bold text-sm text-foreground leading-tight">
                       {compInfo.name}
                     </h3>
                   </div>
                 </div>
-                <span className="text-xs text-muted-foreground">{compInfo.city}</span>
               </div>
 
-              <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-                <div className="rounded-lg bg-card p-2 border border-border/60">
-                  <span className="text-[11px] text-muted-foreground">Receita</span>
-                  <div className="text-sm font-bold text-foreground">
+              <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                <div className="rounded-lg bg-card/80 p-2 border border-border/60">
+                  <span className="text-[10px] text-muted-foreground">Receita</span>
+                  <div className="text-xs font-bold text-foreground">
                     {data.revenue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                   </div>
                 </div>
-                <div className="rounded-lg bg-card p-2 border border-border/60">
-                  <span className="text-[11px] text-muted-foreground">Custos Totais</span>
-                  <div className="text-sm font-bold text-foreground">
+                <div className="rounded-lg bg-card/80 p-2 border border-border/60">
+                  <span className="text-[10px] text-muted-foreground">Custos</span>
+                  <div className="text-xs font-bold text-foreground">
                     {data.cost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                   </div>
                 </div>
-                <div className="rounded-lg bg-card p-2 border border-border/60">
-                  <span className="text-[11px] text-muted-foreground">Margem</span>
+                <div className="rounded-lg bg-card/80 p-2 border border-border/60">
+                  <span className="text-[10px] text-muted-foreground">Margem</span>
                   <div
-                    className={`text-sm font-bold ${
+                    className={`text-xs font-bold ${
                       isProfitable ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
                     }`}
                   >
@@ -142,14 +156,14 @@ function ResultadoEmpresasPage() {
                 </div>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-border flex items-center justify-between text-sm">
-                <span className="font-medium text-muted-foreground">Resultado Operacional:</span>
+              <div className="mt-3 pt-2.5 border-t border-border flex items-center justify-between text-xs">
+                <span className="font-medium text-muted-foreground">Resultado Líquido:</span>
                 <span
-                  className={`text-base font-bold flex items-center gap-1 ${
+                  className={`text-sm font-bold flex items-center gap-1 ${
                     isProfitable ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
                   }`}
                 >
-                  {isProfitable ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                  {isProfitable ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
                   {data.result.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                 </span>
               </div>
@@ -158,25 +172,67 @@ function ResultadoEmpresasPage() {
         })}
       </div>
 
-      {/* Tabela de Composição por Contrato */}
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-xs">
-        <div className="p-4 border-b border-border flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold text-foreground text-sm">Composição dos Contratos · {competence}</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Pessoal direto, custos de frota alocados e rateio proporcional da sede.
-            </p>
-          </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setRevenueModalOpen(true)}
-            className="text-xs gap-1.5"
+      {/* Seletor de Abas das Três Empresas */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-card p-3 rounded-xl border border-border">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setSelectedCompany("ALL")}
+            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+              selectedCompany === "ALL"
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
+            }`}
           >
-            <Edit3 className="h-3.5 w-3.5" /> Informar Receita
-          </Button>
+            Todas as Empresas ({results.rows.length} contratos)
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedCompany("CAROLDO")}
+            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+              selectedCompany === "CAROLDO"
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
+            }`}
+          >
+            CAROLDO ({results.rows.filter((r) => r.company === "CAROLDO").length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedCompany("MF")}
+            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+              selectedCompany === "MF"
+                ? "bg-blue-600 text-white shadow-xs"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
+            }`}
+          >
+            M&F ({results.rows.filter((r) => r.company === "MF").length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedCompany("HELOARTH")}
+            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+              selectedCompany === "HELOARTH"
+                ? "bg-purple-600 text-white shadow-xs"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
+            }`}
+          >
+            HELOARTH ({results.rows.filter((r) => r.company === "HELOARTH").length})
+          </button>
         </div>
 
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setRevenueModalOpen(true)}
+          className="text-xs gap-1.5 self-end sm:self-auto"
+        >
+          <Edit3 className="h-3.5 w-3.5" /> Informar Receita
+        </Button>
+      </div>
+
+      {/* Tabela de Composição por Contrato */}
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-border bg-muted/40 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -193,7 +249,7 @@ function ResultadoEmpresasPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {results.rows.map((r) => {
+              {filteredRows.map((r) => {
                 const isPositive = (r.netResult ?? 0) >= 0;
                 return (
                   <tr key={r.contractId} className="hover:bg-muted/30 transition-colors">
@@ -206,7 +262,9 @@ function ResultadoEmpresasPage() {
                         className={`inline-block px-2 py-0.5 rounded-sm text-xs font-bold ${
                           r.company === "CAROLDO"
                             ? "bg-primary/10 text-primary"
-                            : "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                            : r.company === "MF"
+                            ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                            : "bg-purple-500/10 text-purple-600 dark:text-purple-400"
                         }`}
                       >
                         {r.company}
@@ -256,35 +314,28 @@ function ResultadoEmpresasPage() {
             </tbody>
             <tfoot className="border-t-2 border-border bg-muted/30 font-bold text-sm">
               <tr>
-                <td className="px-4 py-3 text-foreground">Total Geral Consolidado</td>
+                <td className="px-4 py-3 text-foreground">
+                  {selectedCompany === "ALL" ? "Total Consolidado do Grupo" : `Subtotal ${selectedCompany}`}
+                </td>
                 <td className="px-4 py-3">—</td>
-                <td className="px-4 py-3">{results.rows.reduce((acc, r) => acc + r.headcount, 0)} pessoas</td>
+                <td className="px-4 py-3">{filteredRows.reduce((acc, r) => acc + r.headcount, 0)} pessoas</td>
                 <td className="px-4 py-3">
-                  {results.totalLabor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  {filteredRows.reduce((acc, r) => acc + r.laborCost, 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                 </td>
                 <td className="px-4 py-3">
-                  {results.totalFleet.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  {filteredRows.reduce((acc, r) => acc + r.fleetCost, 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                 </td>
                 <td className="px-4 py-3">
-                  {results.totalHQ.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  {filteredRows.reduce((acc, r) => acc + r.hqShareCost, 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                 </td>
                 <td className="px-4 py-3">
-                  {results.totalCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  {filteredRows.reduce((acc, r) => acc + r.totalCost, 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                 </td>
                 <td className="px-4 py-3">
-                  {results.totalRevenue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  {filteredRows.reduce((acc, r) => acc + (r.revenue ?? 0), 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                 </td>
-                <td
-                  className={`px-4 py-3 text-right text-base ${
-                    results.netResult >= 0
-                      ? "text-emerald-600 dark:text-emerald-400"
-                      : "text-rose-600 dark:text-rose-400"
-                  }`}
-                >
-                  {results.netResult.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                  <span className="block text-xs font-normal text-muted-foreground">
-                    Margem global: {results.overallMargin.toFixed(1)}%
-                  </span>
+                <td className="px-4 py-3 text-right text-base text-primary">
+                  {filteredRows.reduce((acc, r) => acc + (r.netResult ?? 0), 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                 </td>
               </tr>
             </tfoot>
@@ -298,7 +349,7 @@ function ResultadoEmpresasPage() {
           <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl animate-in fade-in zoom-in-95">
             <h2 className="text-lg font-bold text-foreground">Despesas da Sede · {competence}</h2>
             <p className="text-xs text-muted-foreground mt-1">
-              Custos administrativos da matriz a serem rateados proporcionalmente entre os contratos ativos.
+              Custos administrativos da matriz a serem rateados proporcionalmente entre os contratos ativos das 3 empresas.
             </p>
 
             <form onSubmit={handleSaveHQ} className="mt-4 space-y-4">
@@ -316,7 +367,7 @@ function ResultadoEmpresasPage() {
               </div>
 
               <p className="text-[11px] text-muted-foreground bg-muted/40 p-2.5 rounded-md">
-                O rateio utiliza a quantidade de colaboradores cadastrados em cada contrato para distribuir os custos fixos da sede com transparência contábil.
+                O rateio utiliza a quantidade de colaboradores cadastrados em cada contrato para distribuir os custos fixos da sede com transparência contábil entre CAROLDO, M&F e HELOARTH.
               </p>
 
               <div className="mt-6 flex items-center justify-end gap-3 pt-3 border-t border-border">
