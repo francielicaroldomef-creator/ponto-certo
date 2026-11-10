@@ -1,4 +1,4 @@
-﻿import { createFileRoute, Navigate, Outlet, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Navigate, Outlet, useRouterState } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { AppShell, SUPERVISOR_PATHS, isSupervisorOnly } from "@/components/app-shell";
 import { useMe } from "@/hooks/use-auth";
