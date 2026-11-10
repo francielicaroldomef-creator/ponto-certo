@@ -83,6 +83,8 @@ export function formatScheduleSummary(schedule: DaySchedule[]): string {
   if (activeDays.length === 0) return "Sem escala ativa";
 
   const first = activeDays[0];
+  if (!first) return "Sem escala ativa";
+
   const allSameHours = activeDays.every(
     (d) =>
       d.startTime === first.startTime &&

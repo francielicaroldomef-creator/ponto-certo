@@ -2,6 +2,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { useContracts } from "@/hooks/use-auth";
 import { upsertContractPostsBatch, type BatchPostInput } from "@/lib/data";
 import { RS_CITIES, isRSCity } from "@/lib/rs-cities";
@@ -45,9 +46,18 @@ import {
   X,
 } from "lucide-react";
 
+/** posts/contracts rows, widened with the columns added by migration 0004. */
+type PostRow = Database["public"]["Tables"]["posts"]["Row"] & {
+  city?: string | null;
+  workplace?: string | null;
+};
+type ContractRow = Database["public"]["Tables"]["contracts"]["Row"] & {
+  city?: string | null;
+};
+
 export const Route = createFileRoute("/_authenticated/postos")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    contractId: (search.contractId as string) || undefined,
+  validateSearch: (search: Record<string, unknown>): { contractId?: string | undefined } => ({
+    contractId: (search["contractId"] as string) || undefined,
   }),
   head: () => ({ meta: [{ title: "Postos de Trabalho — Sistema Integrado Caroldo" }] }),
   component: PostosHierarquicos,
@@ -55,7 +65,7 @@ export const Route = createFileRoute("/_authenticated/postos")({
 
 export interface PostGridItem {
   tempId: string;
-  id?: string;
+  id?: string | undefined;
   code: string;
   workplace: string;
   role_name: string;
@@ -239,7 +249,7 @@ export function PostosHierarquicos() {
   // Auto-select first contract if none selected
   useEffect(() => {
     if (!selectedContractId && contracts && contracts.length > 0) {
-      setSelectedContractId(contracts[0].id);
+      setSelectedContractId(contracts[0]?.id ?? "");
     }
   }, [contracts, selectedContractId]);
 
@@ -252,8 +262,8 @@ export function PostosHierarquicos() {
     }
   };
 
-  const selectedContract = useMemo(() => {
-    return (contracts ?? []).find((c) => c.id === selectedContractId);
+  const selectedContract = useMemo<ContractRow | undefined>(() => {
+    return (contracts ?? []).find((c) => c.id === selectedContractId) as ContractRow | undefined;
   }, [contracts, selectedContractId]);
 
   // LIMITES OFICIAIS DO CONTRATO
@@ -282,7 +292,7 @@ export function PostosHierarquicos() {
         .eq("contract_id", selectedContractId)
         .order("code");
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as PostRow[];
     },
     enabled: Boolean(selectedContractId),
   });
@@ -906,7 +916,8 @@ export function PostosHierarquicos() {
 
     // Validação de nomes das cidades e municípios oficiais do RS
     for (let i = 0; i < cities.length; i++) {
-      if (!cities[i].name.trim() || !isRSCity(cities[i].name.trim())) {
+      const cityNameToCheck = cities[i]?.name.trim();
+      if (!cityNameToCheck || !isRSCity(cityNameToCheck)) {
         toast.error(`Selecione um município oficial do RS na linha #${i + 1} entre os 497 disponíveis.`);
         return;
       }
@@ -949,6 +960,7 @@ export function PostosHierarquicos() {
 
         for (let idx = 0; idx < city.posts.length; idx++) {
           const p = city.posts[idx];
+          if (!p) continue;
           const cleanCode = p.code.trim() || `P${String(idx + 1).padStart(2, "0")}`;
           const cleanWorkplace = p.workplace.trim() || `Posto ${cleanCode}`;
           const cleanRole = p.role_name.trim() || "Servente de Limpeza";
@@ -1000,10 +1012,11 @@ export function PostosHierarquicos() {
       // Sincronizar cidade principal no contrato se aplicável
       // Wrapped in a granular try/catch: city column may not exist yet on contracts.
       if (cities[0]?.name) {
+        const baseCityName = cities[0].name.trim();
         try {
           const { error: cityUpdateErr } = await supabase
             .from("contracts")
-            .update({ city: cities[0].name.trim() })
+            .update({ city: baseCityName } as never)
             .eq("id", selectedContractId);
           if (cityUpdateErr) {
             const msg = (cityUpdateErr.message || "").toLowerCase();

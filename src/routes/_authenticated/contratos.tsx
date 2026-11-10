@@ -31,9 +31,9 @@ function Contratos() {
       if (error) return {};
       const counts: Record<string, { total: number; active: number }> = {};
       (data ?? []).forEach((p) => {
-        if (!counts[p.contract_id]) counts[p.contract_id] = { total: 0, active: 0 };
-        counts[p.contract_id].total++;
-        if (p.active) counts[p.contract_id].active++;
+        const entry = (counts[p.contract_id] ??= { total: 0, active: 0 });
+        entry.total++;
+        if (p.active) entry.active++;
       });
       return counts;
     },

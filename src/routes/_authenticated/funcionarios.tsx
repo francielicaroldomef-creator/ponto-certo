@@ -309,7 +309,7 @@ export function Funcionarios() {
             setViewScheduleEmp(null);
             if (canEdit) setEditingEmp(current);
           }}
-          canEdit={canEdit}
+          canEdit={Boolean(canEdit)}
         />
       )}
 
@@ -494,7 +494,7 @@ function EmployeeFormDialog({
   }, [employee]);
 
   const [contractId, setContractId] = useState<string>(
-    activeAssignment?.contract_id || (contracts.length > 0 ? contracts[0].id : "")
+    activeAssignment?.contract_id || (contracts.length > 0 ? contracts[0]?.id ?? "" : "")
   );
   const [postId, setPostId] = useState<string>(activeAssignment?.post_id || "");
 

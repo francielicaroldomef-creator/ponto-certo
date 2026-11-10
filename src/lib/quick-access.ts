@@ -172,7 +172,7 @@ export async function getQuickCredentials(): Promise<QuickAccessCredential[]> {
  * Salva ou atualiza uma credencial de acesso rápido.
  */
 export async function saveQuickCredential(
-  cred: Omit<QuickAccessCredential, "id" | "created_at"> & { id?: string }
+  cred: Omit<QuickAccessCredential, "id" | "created_at"> & { id?: string | undefined }
 ): Promise<QuickAccessCredential> {
   const now = new Date().toISOString();
   const id = cred.id || (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `qa_${Date.now()}`);

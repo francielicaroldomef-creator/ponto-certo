@@ -98,9 +98,9 @@ describe("Otimização da Resolução de Conflitos e Tratamentos de Ausência", 
 
       const conflicts = findConflictingTreatments(shift, fullAbsence, candidateCoverage, [], [existingDiscount], true);
       expect(conflicts).toHaveLength(1);
-      expect(conflicts[0].id).toBe("desc-1");
-      expect(conflicts[0].label).toContain("Sem cobertura");
-      expect(conflicts[0].overlapMinutes).toBe(480);
+      expect(conflicts[0]?.id).toBe("desc-1");
+      expect(conflicts[0]?.label).toContain("Sem cobertura");
+      expect(conflicts[0]?.overlapMinutes).toBe(480);
     });
 
     it("permite salvar a nova cobertura sem erro após inativar/cancelar o tratamento conflitante", () => {
@@ -150,7 +150,7 @@ describe("Otimização da Resolução de Conflitos e Tratamentos de Ausência", 
       // Com cobertura ativa: conflita
       const conflicts = findConflictingTreatments(shift, fullAbsence, newWaiver, [existingCov], [], false);
       expect(conflicts).toHaveLength(1);
-      expect(conflicts[0].id).toBe("cov-1");
+      expect(conflicts[0]?.id).toBe("cov-1");
 
       // Cancelando a cobertura (status = 'cancelada')
       const cancelledCov: TreatmentRecord = { ...existingCov, status: "cancelada" };
@@ -209,9 +209,9 @@ describe("Otimização da Resolução de Conflitos e Tratamentos de Ausência", 
 
       const duplicates = detectLegacyConflicts(shift, fullAbsence, [legacy1, legacy2], []);
       expect(duplicates).toHaveLength(1);
-      expect(duplicates[0].id1).toBe("leg-1");
-      expect(duplicates[0].id2).toBe("leg-2");
-      expect(duplicates[0].overlapMinutes).toBe(240); // 4h de sobreposição
+      expect(duplicates[0]?.id1).toBe("leg-1");
+      expect(duplicates[0]?.id2).toBe("leg-2");
+      expect(duplicates[0]?.overlapMinutes).toBe(240); // 4h de sobreposição
     });
 
     it("ignora registros onde um deles já está cancelado ou inativo", () => {

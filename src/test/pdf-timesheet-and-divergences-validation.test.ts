@@ -102,7 +102,7 @@ describe("Item 5: Upload de Cartão de Ponto em PDF e Divergências", () => {
     const resultado = avaliarDocumento(textLen, 0);
     expect(resultado.status).toBe("conferencia_manual");
     expect(resultado.error).toContain("OCR não configurado — conferir manualmente");
-    expect(resultado.divergence.kind).toBe("documento_ilegivel");
-    expect(resultado.divergence.affects_calc).toBe(false);
+    expect(resultado.divergence?.kind).toBe("documento_ilegivel");
+    expect(resultado.divergence?.affects_calc).toBe(false);
   });
 });
