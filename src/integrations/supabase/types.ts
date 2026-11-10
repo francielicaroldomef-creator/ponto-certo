@@ -256,7 +256,6 @@ export type Database = {
       contracts: {
         Row: {
           active: boolean
-          city: string | null
           client: string
           code: string
           created_at: string
@@ -267,14 +266,12 @@ export type Database = {
           name: string
           operating_weekdays: number[]
           required_headcount: number
-          required_posts?: number | null
           start_date: string
           supervisor_id: string | null
           supervisor_name: string | null
         }
         Insert: {
           active?: boolean
-          city?: string | null
           client: string
           code: string
           created_at?: string
@@ -285,14 +282,12 @@ export type Database = {
           name: string
           operating_weekdays?: number[]
           required_headcount?: number
-          required_posts?: number | null
           start_date: string
           supervisor_id?: string | null
           supervisor_name?: string | null
         }
         Update: {
           active?: boolean
-          city?: string | null
           client?: string
           code?: string
           created_at?: string
@@ -303,7 +298,6 @@ export type Database = {
           name?: string
           operating_weekdays?: number[]
           required_headcount?: number
-          required_posts?: number | null
           start_date?: string
           supervisor_id?: string | null
           supervisor_name?: string | null
@@ -634,7 +628,6 @@ export type Database = {
           active: boolean
           break_end: string | null
           break_start: string | null
-          city: string | null
           code: string
           contract_id: string
           day_value: number
@@ -648,13 +641,11 @@ export type Database = {
           start_time: string
           valid_from: string | null
           valid_to: string | null
-          workplace: string | null
         }
         Insert: {
           active?: boolean
           break_end?: string | null
           break_start?: string | null
-          city?: string | null
           code: string
           contract_id: string
           day_value?: number
@@ -668,13 +659,11 @@ export type Database = {
           start_time?: string
           valid_from?: string | null
           valid_to?: string | null
-          workplace?: string | null
         }
         Update: {
           active?: boolean
           break_end?: string | null
           break_start?: string | null
-          city?: string | null
           code?: string
           contract_id?: string
           day_value?: number
@@ -688,7 +677,6 @@ export type Database = {
           start_time?: string
           valid_from?: string | null
           valid_to?: string | null
-          workplace?: string | null
         }
         Relationships: [
           {
