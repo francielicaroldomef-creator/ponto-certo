@@ -430,6 +430,12 @@ Continue developing this project in the [Lovable editor](https://lovable.dev/pro
 - **Stay in sync**: every change made in Lovable is committed straight to this repository.
 - **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
 
+### Últimas Atualizações Integradas (CAROLDO Gestão Unificada)
+1. **Entrada Direta Automática**: Remoção da barreira de login/senha; o sistema inicializa automaticamente logado como Administradora Francieli.
+2. **Gestão de Frotas (`/frotas`)**: Veículos, Ordens de Manutenção Preventiva/Corretiva, Abastecimentos com cálculo de KM/L, Chamados de Sinistro/Apoio, Agenda com trava de 24h de antecedência e Consulta DetranRS.
+3. **Consolidação das Três Empresas (`/resultado`)**: Apuração financeira de **CAROLDO**, **M&F** e **HELOARTH** com seletor interativo de abas por empresa, custos de pessoal direto, despesas de frota e rateio proporcional da sede.
+4. **Painel Unificado (`/painel`)**: Banner integrado com três pilares operacionais e acesso rápido.
+
 ## Development
 
 Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
