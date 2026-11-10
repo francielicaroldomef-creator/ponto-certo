@@ -86,8 +86,8 @@ describe("🏢 Estruturação e Exibição da Página de Postos (/postos)", () =
       label: c.name ? `${c.name} (${c.code})` : c.code,
     }));
 
-    expect(options[0].label).toBe("PGE (CT-001)");
-    expect(options[1].label).toBe("Prefeitura Municipal (CT-002)");
-    expect(options[2].label).toBe("CT-003");
+    expect(options[0]?.label).toBe("PGE (CT-001)");
+    expect(options[1]?.label).toBe("Prefeitura Municipal (CT-002)");
+    expect(options[2]?.label).toBe("CT-003");
   });
 });

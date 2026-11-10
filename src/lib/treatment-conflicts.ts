@@ -23,6 +23,7 @@ export interface TreatmentRecord {
   kind?: string;
   coverer_type?: string;
   active?: boolean;
+  agreed_value?: number | null;
 }
 
 export interface ConflictingRecordInfo {

@@ -298,7 +298,7 @@ export async function upsertContractPostsBatch(
     });
   } catch (_) {}
 
-  const rows: Record<string, unknown>[] = posts.map((p) => {
+  const rows: any[] = posts.map((p) => {
     const cleanCode = p.code.trim().toUpperCase();
     let rowId = p.id && isValidUUID(p.id) ? p.id : existingIdByCode.get(cleanCode);
     if (!rowId || !isValidUUID(rowId)) {

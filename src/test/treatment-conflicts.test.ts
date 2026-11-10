@@ -44,9 +44,9 @@ describe("same absence treatment conflicts", () => {
   it("findConflictingTreatments returns detailed conflict records with overlap duration", () => {
     const conflicts = findConflictingTreatments(shift, absence, coverage, [], [discount], true);
     expect(conflicts).toHaveLength(1);
-    expect(conflicts[0].id).toBe("discount");
-    expect(conflicts[0].label).toContain("Sem cobertura");
-    expect(conflicts[0].overlapMinutes).toBe(480); // 8h
+    expect(conflicts[0]?.id).toBe("discount");
+    expect(conflicts[0]?.label).toContain("Sem cobertura");
+    expect(conflicts[0]?.overlapMinutes).toBe(480); // 8h
   });
 
   describe("suggestNextFreeInterval", () => {
@@ -81,9 +81,9 @@ describe("same absence treatment conflicts", () => {
       const cov2 = { ...shift, id: "c2", start_time: "13:00", end_time: "17:00", status: "realizada" };
       const legacy = detectLegacyConflicts(shift, absence, [cov1, cov2], []);
       expect(legacy).toHaveLength(1);
-      expect(legacy[0].overlapMinutes).toBe(240);
-      expect(legacy[0].id1).toBe("c1");
-      expect(legacy[0].id2).toBe("c2");
+      expect(legacy[0]?.overlapMinutes).toBe(240);
+      expect(legacy[0]?.id1).toBe("c1");
+      expect(legacy[0]?.id2).toBe("c2");
     });
 
     it("ignores cancelled or inactive records", () => {

@@ -103,19 +103,19 @@ describe("📋 FLUXO HIERÁRQUICO DE POSTOS EM GRADE ESTILO EXCEL (/postos)", ()
     }));
 
     expect(mappedRows.length).toBe(2);
-    expect(mappedRows[0].city).toBe("Erechim");
-    expect(mappedRows[0].workplace).toBe("Escola Serafim");
-    expect(mappedRows[0].code).toBe("ERE-01");
-    expect(mappedRows[0].start_time).toBe("08:00");
-    expect(mappedRows[0].end_time).toBe("17:00");
-    expect(mappedRows[0].break_start).toBe("12:00");
-    expect(mappedRows[0].break_end).toBe("13:00");
-    expect(mappedRows[0].shift).toBe("Diurno");
+    expect(mappedRows[0]?.city).toBe("Erechim");
+    expect(mappedRows[0]?.workplace).toBe("Escola Serafim");
+    expect(mappedRows[0]?.code).toBe("ERE-01");
+    expect(mappedRows[0]?.start_time).toBe("08:00");
+    expect(mappedRows[0]?.end_time).toBe("17:00");
+    expect(mappedRows[0]?.break_start).toBe("12:00");
+    expect(mappedRows[0]?.break_end).toBe("13:00");
+    expect(mappedRows[0]?.shift).toBe("Diurno");
 
-    expect(mappedRows[1].city).toBe("Triunfo");
-    expect(mappedRows[1].workplace).toBe("Fórum Central");
-    expect(mappedRows[1].code).toBe("TRI-01");
-    expect(mappedRows[1].required_qty).toBe(2);
+    expect(mappedRows[1]?.city).toBe("Triunfo");
+    expect(mappedRows[1]?.workplace).toBe("Fórum Central");
+    expect(mappedRows[1]?.code).toBe("TRI-01");
+    expect(mappedRows[1]?.required_qty).toBe(2);
   });
 
   it("7. Contrato PGE (CT-001) possui exatamente 30 postos oficiais (P01 a P30) e não 45", () => {

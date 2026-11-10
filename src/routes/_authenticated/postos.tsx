@@ -65,7 +65,7 @@ export const Route = createFileRoute("/_authenticated/postos")({
 
 export interface PostGridItem {
   tempId: string;
-  id?: string;
+  id?: string | undefined;
   code: string;
   workplace: string;
   role_name: string;
