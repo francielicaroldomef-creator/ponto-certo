@@ -129,7 +129,7 @@ function NavSubmenu({
 }: {
   branch: NavBranchItem;
   path: string;
-  onNavigate?: () => void;
+  onNavigate?: (() => void) | undefined;
 }) {
   const isBranchActive =
     (branch.to && path.startsWith(branch.to)) ||
