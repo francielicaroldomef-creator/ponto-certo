@@ -21,6 +21,13 @@ import {
   ChevronRight,
   Briefcase,
   FileSpreadsheet,
+  Car,
+  Wrench,
+  Fuel,
+  MessageSquareWarning,
+  CalendarClock,
+  Receipt,
+  Building2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMe } from "@/hooks/use-auth";
@@ -58,14 +65,19 @@ export interface NavGroupSection {
 
 export const NAV_HIERARCHY: NavGroupSection[] = [
   {
-    group: "Operacional",
+    group: "Central",
+    items: [
+      { to: "/painel", label: "Painel unificado", icon: LayoutDashboard },
+    ],
+  },
+  {
+    group: "Operacional & Efetivo",
     items: [
       {
         id: "efetividade",
         label: "Efetividade",
         icon: UsersRound,
         items: [
-          { to: "/painel", label: "Painel geral", icon: LayoutDashboard },
           { to: "/conferencia", label: "Conferência diária", icon: ClipboardCheck },
           { to: "/coberturas", label: "Coberturas", icon: ShieldCheck },
           { to: "/efetivo", label: "Conferência de efetivo", icon: UsersRound },
@@ -85,6 +97,26 @@ export const NAV_HIERARCHY: NavGroupSection[] = [
     ],
   },
   {
+    group: "Gestão de Frotas",
+    items: [
+      {
+        id: "frotas-modulo",
+        label: "Caroldo Frotas",
+        icon: Car,
+        to: "/frotas",
+        items: [
+          { to: "/frotas", label: "Painel da frota", icon: LayoutDashboard },
+          { to: "/frotas/veiculos", label: "Veículos", icon: Car },
+          { to: "/frotas/manutencoes", label: "Manutenções", icon: Wrench },
+          { to: "/frotas/abastecimentos", label: "Abastecimentos", icon: Fuel },
+          { to: "/frotas/chamados", label: "Chamados", icon: MessageSquareWarning },
+          { to: "/frotas/agenda", label: "Agenda de reservas", icon: CalendarClock },
+          { to: "/frotas/multas", label: "Multas RS", icon: Receipt },
+        ],
+      },
+    ],
+  },
+  {
     group: "Licitação",
     items: [
       {
@@ -99,8 +131,9 @@ export const NAV_HIERARCHY: NavGroupSection[] = [
     ],
   },
   {
-    group: "Gestão",
+    group: "Gestão & Estratégico",
     items: [
+      { to: "/resultado", label: "Resultado CAROLDO / M&F", icon: Building2 },
       { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
       { to: "/fechamentos", label: "Fechamentos", icon: Lock },
       { to: "/usuarios", label: "Usuários e configurações", icon: Settings },

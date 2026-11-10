@@ -21,11 +21,19 @@ import { Route as AuthenticatedDocumentosRouteImport } from './routes/_authentic
 import { Route as AuthenticatedEfetivoRouteImport } from './routes/_authenticated/efetivo'
 import { Route as AuthenticatedEscalasRouteImport } from './routes/_authenticated/escalas'
 import { Route as AuthenticatedFechamentosRouteImport } from './routes/_authenticated/fechamentos'
+import { Route as AuthenticatedFrotasRouteImport } from './routes/_authenticated/frotas'
 import { Route as AuthenticatedFuncionariosRouteImport } from './routes/_authenticated/funcionarios'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as AuthenticatedPostosRouteImport } from './routes/_authenticated/postos'
 import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
+import { Route as AuthenticatedResultadoRouteImport } from './routes/_authenticated/resultado'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
+import { Route as AuthenticatedFrotasAbastecimentosRouteImport } from './routes/_authenticated/frotas.abastecimentos'
+import { Route as AuthenticatedFrotasAgendaRouteImport } from './routes/_authenticated/frotas.agenda'
+import { Route as AuthenticatedFrotasChamadosRouteImport } from './routes/_authenticated/frotas.chamados'
+import { Route as AuthenticatedFrotasManutencoesRouteImport } from './routes/_authenticated/frotas.manutencoes'
+import { Route as AuthenticatedFrotasMultasRouteImport } from './routes/_authenticated/frotas.multas'
+import { Route as AuthenticatedFrotasVeiculosRouteImport } from './routes/_authenticated/frotas.veiculos'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -89,6 +97,11 @@ const AuthenticatedFechamentosRoute =
     path: '/fechamentos',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedFrotasRoute = AuthenticatedFrotasRouteImport.update({
+  id: '/frotas',
+  path: '/frotas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedFuncionariosRoute =
   AuthenticatedFuncionariosRouteImport.update({
     id: '/funcionarios',
@@ -110,11 +123,52 @@ const AuthenticatedRelatoriosRoute = AuthenticatedRelatoriosRouteImport.update({
   path: '/relatorios',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedResultadoRoute = AuthenticatedResultadoRouteImport.update({
+  id: '/resultado',
+  path: '/resultado',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
   id: '/usuarios',
   path: '/usuarios',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedFrotasAbastecimentosRoute =
+  AuthenticatedFrotasAbastecimentosRouteImport.update({
+    id: '/abastecimentos',
+    path: '/abastecimentos',
+    getParentRoute: () => AuthenticatedFrotasRoute,
+  } as any)
+const AuthenticatedFrotasAgendaRoute =
+  AuthenticatedFrotasAgendaRouteImport.update({
+    id: '/agenda',
+    path: '/agenda',
+    getParentRoute: () => AuthenticatedFrotasRoute,
+  } as any)
+const AuthenticatedFrotasChamadosRoute =
+  AuthenticatedFrotasChamadosRouteImport.update({
+    id: '/chamados',
+    path: '/chamados',
+    getParentRoute: () => AuthenticatedFrotasRoute,
+  } as any)
+const AuthenticatedFrotasManutencoesRoute =
+  AuthenticatedFrotasManutencoesRouteImport.update({
+    id: '/manutencoes',
+    path: '/manutencoes',
+    getParentRoute: () => AuthenticatedFrotasRoute,
+  } as any)
+const AuthenticatedFrotasMultasRoute =
+  AuthenticatedFrotasMultasRouteImport.update({
+    id: '/multas',
+    path: '/multas',
+    getParentRoute: () => AuthenticatedFrotasRoute,
+  } as any)
+const AuthenticatedFrotasVeiculosRoute =
+  AuthenticatedFrotasVeiculosRouteImport.update({
+    id: '/veiculos',
+    path: '/veiculos',
+    getParentRoute: () => AuthenticatedFrotasRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -128,11 +182,19 @@ export interface FileRoutesByFullPath {
   '/efetivo': typeof AuthenticatedEfetivoRoute
   '/escalas': typeof AuthenticatedEscalasRoute
   '/fechamentos': typeof AuthenticatedFechamentosRoute
+  '/frotas': typeof AuthenticatedFrotasRouteWithChildren
   '/funcionarios': typeof AuthenticatedFuncionariosRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/postos': typeof AuthenticatedPostosRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
+  '/resultado': typeof AuthenticatedResultadoRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
+  '/frotas/abastecimentos': typeof AuthenticatedFrotasAbastecimentosRoute
+  '/frotas/agenda': typeof AuthenticatedFrotasAgendaRoute
+  '/frotas/chamados': typeof AuthenticatedFrotasChamadosRoute
+  '/frotas/manutencoes': typeof AuthenticatedFrotasManutencoesRoute
+  '/frotas/multas': typeof AuthenticatedFrotasMultasRoute
+  '/frotas/veiculos': typeof AuthenticatedFrotasVeiculosRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -146,11 +208,19 @@ export interface FileRoutesByTo {
   '/efetivo': typeof AuthenticatedEfetivoRoute
   '/escalas': typeof AuthenticatedEscalasRoute
   '/fechamentos': typeof AuthenticatedFechamentosRoute
+  '/frotas': typeof AuthenticatedFrotasRouteWithChildren
   '/funcionarios': typeof AuthenticatedFuncionariosRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/postos': typeof AuthenticatedPostosRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
+  '/resultado': typeof AuthenticatedResultadoRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
+  '/frotas/abastecimentos': typeof AuthenticatedFrotasAbastecimentosRoute
+  '/frotas/agenda': typeof AuthenticatedFrotasAgendaRoute
+  '/frotas/chamados': typeof AuthenticatedFrotasChamadosRoute
+  '/frotas/manutencoes': typeof AuthenticatedFrotasManutencoesRoute
+  '/frotas/multas': typeof AuthenticatedFrotasMultasRoute
+  '/frotas/veiculos': typeof AuthenticatedFrotasVeiculosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -166,11 +236,19 @@ export interface FileRoutesById {
   '/_authenticated/efetivo': typeof AuthenticatedEfetivoRoute
   '/_authenticated/escalas': typeof AuthenticatedEscalasRoute
   '/_authenticated/fechamentos': typeof AuthenticatedFechamentosRoute
+  '/_authenticated/frotas': typeof AuthenticatedFrotasRouteWithChildren
   '/_authenticated/funcionarios': typeof AuthenticatedFuncionariosRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/postos': typeof AuthenticatedPostosRoute
   '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
+  '/_authenticated/resultado': typeof AuthenticatedResultadoRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
+  '/_authenticated/frotas/abastecimentos': typeof AuthenticatedFrotasAbastecimentosRoute
+  '/_authenticated/frotas/agenda': typeof AuthenticatedFrotasAgendaRoute
+  '/_authenticated/frotas/chamados': typeof AuthenticatedFrotasChamadosRoute
+  '/_authenticated/frotas/manutencoes': typeof AuthenticatedFrotasManutencoesRoute
+  '/_authenticated/frotas/multas': typeof AuthenticatedFrotasMultasRoute
+  '/_authenticated/frotas/veiculos': typeof AuthenticatedFrotasVeiculosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -186,11 +264,19 @@ export interface FileRouteTypes {
     | '/efetivo'
     | '/escalas'
     | '/fechamentos'
+    | '/frotas'
     | '/funcionarios'
     | '/painel'
     | '/postos'
     | '/relatorios'
+    | '/resultado'
     | '/usuarios'
+    | '/frotas/abastecimentos'
+    | '/frotas/agenda'
+    | '/frotas/chamados'
+    | '/frotas/manutencoes'
+    | '/frotas/multas'
+    | '/frotas/veiculos'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -204,11 +290,19 @@ export interface FileRouteTypes {
     | '/efetivo'
     | '/escalas'
     | '/fechamentos'
+    | '/frotas'
     | '/funcionarios'
     | '/painel'
     | '/postos'
     | '/relatorios'
+    | '/resultado'
     | '/usuarios'
+    | '/frotas/abastecimentos'
+    | '/frotas/agenda'
+    | '/frotas/chamados'
+    | '/frotas/manutencoes'
+    | '/frotas/multas'
+    | '/frotas/veiculos'
   id:
     | '__root__'
     | '/'
@@ -223,11 +317,19 @@ export interface FileRouteTypes {
     | '/_authenticated/efetivo'
     | '/_authenticated/escalas'
     | '/_authenticated/fechamentos'
+    | '/_authenticated/frotas'
     | '/_authenticated/funcionarios'
     | '/_authenticated/painel'
     | '/_authenticated/postos'
     | '/_authenticated/relatorios'
+    | '/_authenticated/resultado'
     | '/_authenticated/usuarios'
+    | '/_authenticated/frotas/abastecimentos'
+    | '/_authenticated/frotas/agenda'
+    | '/_authenticated/frotas/chamados'
+    | '/_authenticated/frotas/manutencoes'
+    | '/_authenticated/frotas/multas'
+    | '/_authenticated/frotas/veiculos'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -322,6 +424,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFechamentosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/frotas': {
+      id: '/_authenticated/frotas'
+      path: '/frotas'
+      fullPath: '/frotas'
+      preLoaderRoute: typeof AuthenticatedFrotasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/funcionarios': {
       id: '/_authenticated/funcionarios'
       path: '/funcionarios'
@@ -350,6 +459,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRelatoriosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/resultado': {
+      id: '/_authenticated/resultado'
+      path: '/resultado'
+      fullPath: '/resultado'
+      preLoaderRoute: typeof AuthenticatedResultadoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/usuarios': {
       id: '/_authenticated/usuarios'
       path: '/usuarios'
@@ -357,8 +473,72 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUsuariosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/frotas/abastecimentos': {
+      id: '/_authenticated/frotas/abastecimentos'
+      path: '/abastecimentos'
+      fullPath: '/frotas/abastecimentos'
+      preLoaderRoute: typeof AuthenticatedFrotasAbastecimentosRouteImport
+      parentRoute: typeof AuthenticatedFrotasRoute
+    }
+    '/_authenticated/frotas/agenda': {
+      id: '/_authenticated/frotas/agenda'
+      path: '/agenda'
+      fullPath: '/frotas/agenda'
+      preLoaderRoute: typeof AuthenticatedFrotasAgendaRouteImport
+      parentRoute: typeof AuthenticatedFrotasRoute
+    }
+    '/_authenticated/frotas/chamados': {
+      id: '/_authenticated/frotas/chamados'
+      path: '/chamados'
+      fullPath: '/frotas/chamados'
+      preLoaderRoute: typeof AuthenticatedFrotasChamadosRouteImport
+      parentRoute: typeof AuthenticatedFrotasRoute
+    }
+    '/_authenticated/frotas/manutencoes': {
+      id: '/_authenticated/frotas/manutencoes'
+      path: '/manutencoes'
+      fullPath: '/frotas/manutencoes'
+      preLoaderRoute: typeof AuthenticatedFrotasManutencoesRouteImport
+      parentRoute: typeof AuthenticatedFrotasRoute
+    }
+    '/_authenticated/frotas/multas': {
+      id: '/_authenticated/frotas/multas'
+      path: '/multas'
+      fullPath: '/frotas/multas'
+      preLoaderRoute: typeof AuthenticatedFrotasMultasRouteImport
+      parentRoute: typeof AuthenticatedFrotasRoute
+    }
+    '/_authenticated/frotas/veiculos': {
+      id: '/_authenticated/frotas/veiculos'
+      path: '/veiculos'
+      fullPath: '/frotas/veiculos'
+      preLoaderRoute: typeof AuthenticatedFrotasVeiculosRouteImport
+      parentRoute: typeof AuthenticatedFrotasRoute
+    }
   }
 }
+
+interface AuthenticatedFrotasRouteChildren {
+  AuthenticatedFrotasAbastecimentosRoute: typeof AuthenticatedFrotasAbastecimentosRoute
+  AuthenticatedFrotasAgendaRoute: typeof AuthenticatedFrotasAgendaRoute
+  AuthenticatedFrotasChamadosRoute: typeof AuthenticatedFrotasChamadosRoute
+  AuthenticatedFrotasManutencoesRoute: typeof AuthenticatedFrotasManutencoesRoute
+  AuthenticatedFrotasMultasRoute: typeof AuthenticatedFrotasMultasRoute
+  AuthenticatedFrotasVeiculosRoute: typeof AuthenticatedFrotasVeiculosRoute
+}
+
+const AuthenticatedFrotasRouteChildren: AuthenticatedFrotasRouteChildren = {
+  AuthenticatedFrotasAbastecimentosRoute:
+    AuthenticatedFrotasAbastecimentosRoute,
+  AuthenticatedFrotasAgendaRoute: AuthenticatedFrotasAgendaRoute,
+  AuthenticatedFrotasChamadosRoute: AuthenticatedFrotasChamadosRoute,
+  AuthenticatedFrotasManutencoesRoute: AuthenticatedFrotasManutencoesRoute,
+  AuthenticatedFrotasMultasRoute: AuthenticatedFrotasMultasRoute,
+  AuthenticatedFrotasVeiculosRoute: AuthenticatedFrotasVeiculosRoute,
+}
+
+const AuthenticatedFrotasRouteWithChildren =
+  AuthenticatedFrotasRoute._addFileChildren(AuthenticatedFrotasRouteChildren)
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedCoberturasRoute: typeof AuthenticatedCoberturasRoute
@@ -370,10 +550,12 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedEfetivoRoute: typeof AuthenticatedEfetivoRoute
   AuthenticatedEscalasRoute: typeof AuthenticatedEscalasRoute
   AuthenticatedFechamentosRoute: typeof AuthenticatedFechamentosRoute
+  AuthenticatedFrotasRoute: typeof AuthenticatedFrotasRouteWithChildren
   AuthenticatedFuncionariosRoute: typeof AuthenticatedFuncionariosRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
   AuthenticatedPostosRoute: typeof AuthenticatedPostosRoute
   AuthenticatedRelatoriosRoute: typeof AuthenticatedRelatoriosRoute
+  AuthenticatedResultadoRoute: typeof AuthenticatedResultadoRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
 }
 
@@ -387,10 +569,12 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEfetivoRoute: AuthenticatedEfetivoRoute,
   AuthenticatedEscalasRoute: AuthenticatedEscalasRoute,
   AuthenticatedFechamentosRoute: AuthenticatedFechamentosRoute,
+  AuthenticatedFrotasRoute: AuthenticatedFrotasRouteWithChildren,
   AuthenticatedFuncionariosRoute: AuthenticatedFuncionariosRoute,
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
   AuthenticatedPostosRoute: AuthenticatedPostosRoute,
   AuthenticatedRelatoriosRoute: AuthenticatedRelatoriosRoute,
+  AuthenticatedResultadoRoute: AuthenticatedResultadoRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
 }
 
