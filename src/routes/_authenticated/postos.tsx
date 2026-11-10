@@ -249,7 +249,7 @@ export function PostosHierarquicos() {
   // Auto-select first contract if none selected
   useEffect(() => {
     if (!selectedContractId && contracts && contracts.length > 0) {
-      setSelectedContractId(contracts[0].id);
+      setSelectedContractId(contracts[0]?.id ?? "");
     }
   }, [contracts, selectedContractId]);
 
@@ -262,8 +262,8 @@ export function PostosHierarquicos() {
     }
   };
 
-  const selectedContract = useMemo(() => {
-    return (contracts ?? []).find((c) => c.id === selectedContractId);
+  const selectedContract = useMemo<ContractRow | undefined>(() => {
+    return (contracts ?? []).find((c) => c.id === selectedContractId) as ContractRow | undefined;
   }, [contracts, selectedContractId]);
 
   // LIMITES OFICIAIS DO CONTRATO
@@ -292,7 +292,7 @@ export function PostosHierarquicos() {
         .eq("contract_id", selectedContractId)
         .order("code");
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as PostRow[];
     },
     enabled: Boolean(selectedContractId),
   });
@@ -916,7 +916,8 @@ export function PostosHierarquicos() {
 
     // Validação de nomes das cidades e municípios oficiais do RS
     for (let i = 0; i < cities.length; i++) {
-      if (!cities[i].name.trim() || !isRSCity(cities[i].name.trim())) {
+      const cityNameToCheck = cities[i]?.name.trim();
+      if (!cityNameToCheck || !isRSCity(cityNameToCheck)) {
         toast.error(`Selecione um município oficial do RS na linha #${i + 1} entre os 497 disponíveis.`);
         return;
       }
@@ -959,6 +960,7 @@ export function PostosHierarquicos() {
 
         for (let idx = 0; idx < city.posts.length; idx++) {
           const p = city.posts[idx];
+          if (!p) continue;
           const cleanCode = p.code.trim() || `P${String(idx + 1).padStart(2, "0")}`;
           const cleanWorkplace = p.workplace.trim() || `Posto ${cleanCode}`;
           const cleanRole = p.role_name.trim() || "Servente de Limpeza";
@@ -1010,10 +1012,11 @@ export function PostosHierarquicos() {
       // Sincronizar cidade principal no contrato se aplicável
       // Wrapped in a granular try/catch: city column may not exist yet on contracts.
       if (cities[0]?.name) {
+        const baseCityName = cities[0].name.trim();
         try {
           const { error: cityUpdateErr } = await supabase
             .from("contracts")
-            .update({ city: cities[0].name.trim() })
+            .update({ city: baseCityName } as never)
             .eq("id", selectedContractId);
           if (cityUpdateErr) {
             const msg = (cityUpdateErr.message || "").toLowerCase();
