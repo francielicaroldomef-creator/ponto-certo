@@ -442,7 +442,7 @@ export type Database = {
           absent_cpf: string
           absent_name: string
           active?: boolean
-          code: string
+          code?: string
           contract_id: string
           created_at?: string
           created_by?: string | null
