@@ -75,14 +75,14 @@ export const NAV_HIERARCHY: NavGroupSection[] = [
     items: [
       {
         id: "efetividade",
-        label: "Efetividade",
+        label: "Supervisor",
         icon: UsersRound,
         items: [
           { to: "/conferencia", label: "Conferência diária", icon: ClipboardCheck },
           { to: "/coberturas", label: "Coberturas", icon: ShieldCheck },
           { to: "/efetivo", label: "Conferência de efetivo", icon: UsersRound },
           { to: "/funcionarios", label: "Funcionários", icon: Users },
-          { to: "/diaristas", label: "Diaristas", icon: UserRoundPlus },
+          { to: "/diaristas", label: "Controle de dias", icon: UserRoundPlus },
         ],
       },
       {

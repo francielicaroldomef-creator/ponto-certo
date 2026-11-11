@@ -38,7 +38,7 @@ export const AVAILABLE_MODULES: { path: string; label: string; group: string }[]
   { path: "/postos", label: "Postos", group: "Cadastros" },
   { path: "/funcionarios", label: "Funcionários", group: "Cadastros" },
   { path: "/escalas", label: "Escalas", group: "Cadastros" },
-  { path: "/diaristas", label: "Diaristas", group: "Cadastros" },
+  { path: "/diaristas", label: "Controle de dias", group: "Cadastros" },
   { path: "/frotas", label: "Painel da frota", group: "Frotas" },
   { path: "/frotas/veiculos", label: "Veículos", group: "Frotas" },
   { path: "/frotas/manutencoes", label: "Manutenções", group: "Frotas" },

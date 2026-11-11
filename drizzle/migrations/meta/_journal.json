@@ -22,6 +22,20 @@
       "when": 1793015376109,
       "tag": "0002_guard_absence_treatment_overlap",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794402875102,
+      "tag": "0003_day_control_ledger",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794402963136,
+      "tag": "0004_day_control_code_default",
+      "breakpoints": true
     }
   ]
 }

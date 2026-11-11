@@ -112,7 +112,7 @@ export function Funcionarios() {
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground pb-1">
         <span>Operacional</span>
         <span>/</span>
-        <span className="text-muted-foreground">Efetividade</span>
+        <span className="text-muted-foreground">Supervisor</span>
         <span>/</span>
         <span className="text-foreground font-semibold">Funcionários</span>
       </div>

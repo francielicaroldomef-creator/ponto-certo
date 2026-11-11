@@ -416,6 +416,80 @@ export type Database = {
           },
         ]
       }
+      day_control_entries: {
+        Row: {
+          absent_cpf: string
+          absent_name: string
+          active: boolean
+          code: string
+          contract_id: string
+          created_at: string
+          created_by: string | null
+          daily_value: number
+          fare_quantity: number
+          fare_value: number
+          id: string
+          shift: string
+          shift_range: unknown
+          total_value: number | null
+          updated_at: string
+          updated_by: string | null
+          work_date: string
+          worker_cpf: string
+          worker_name: string
+        }
+        Insert: {
+          absent_cpf: string
+          absent_name: string
+          active?: boolean
+          code?: string
+          contract_id: string
+          created_at?: string
+          created_by?: string | null
+          daily_value: number
+          fare_quantity?: number
+          fare_value?: number
+          id?: string
+          shift: string
+          shift_range?: unknown
+          total_value?: number | null
+          updated_at?: string
+          updated_by?: string | null
+          work_date: string
+          worker_cpf: string
+          worker_name: string
+        }
+        Update: {
+          absent_cpf?: string
+          absent_name?: string
+          active?: boolean
+          code?: string
+          contract_id?: string
+          created_at?: string
+          created_by?: string | null
+          daily_value?: number
+          fare_quantity?: number
+          fare_value?: number
+          id?: string
+          shift?: string
+          shift_range?: unknown
+          total_value?: number | null
+          updated_at?: string
+          updated_by?: string | null
+          work_date?: string
+          worker_cpf?: string
+          worker_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "day_control_entries_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       day_workers: {
         Row: {
           availability: string | null
@@ -919,6 +993,7 @@ export type Database = {
         Args: { c: Database["public"]["Tables"]["coverages"]["Row"]; m: string }
         Returns: boolean
       }
+      day_control_cpf_valid: { Args: { cpf: string }; Returns: boolean }
       generate_schedules: {
         Args: { _contract: string; _from: string; _to: string }
         Returns: number
