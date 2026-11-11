@@ -312,7 +312,7 @@ function Painel() {
                 </p>
               </div>
               <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Efetividade Diária</span>
+                <span className="text-xs text-muted-foreground">Supervisor</span>
                 <Link
                   to="/conferencia"
                   className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"

@@ -14,3 +14,4 @@
 - Enforce treatment permissions, interval conflicts and period closing locks in database policies/triggers, not only the interface, to protect direct writes.
 - Both absence forms use shared fresh conflict preflight; a shared database write trigger serializes absence coverage/treatment checks by post/date, including legacy unlinked coverages, without repairing historical rows.
 - New closings retain detailed calculation snapshots; use saved totals and rows for closed periods to prevent silent financial changes.
+- Daily payment entries use a contract-scoped ledger with database-generated codes, CPF/shift overlap constraints and server-calculated transport totals; they do not synthesize attendance coverage or change invoice calculations.

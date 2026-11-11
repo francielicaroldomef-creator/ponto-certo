@@ -1,4 +1,5 @@
 # Portal do Supervisor — Roadmap
+- [ ] Renomear Supervisor e Controle de dias; implantar lançamentos com CPF, turnos, passagens, total e bloqueio de duplicidade.
 - [ ] Corrigir e validar sobreposição da mesma ausência nos dois fluxos, sem modificar registros existentes.
 - [x] 1. Banco, autenticação e permissões (RLS por contrato, bloqueio pós-fechamento, auditoria)
 - [x] 2. Cadastros e dados fictícios (CT-001, 30 postos/funcionários, 5 diaristas, escala out/2026)
