@@ -173,6 +173,11 @@ interface LoginFormProps {
   onForgot: (email: string) => void;
 }
 
+const BLOCKED_EMAILS = [
+  "fransrosa19@gmail.com",
+  "francieli.caroldomef@gmail.com",
+];
+
 function LoginForm({ busy, onSubmit, onForgot }: LoginFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -188,8 +193,12 @@ function LoginForm({ busy, onSubmit, onForgot }: LoginFormProps) {
     try {
       const saved = localStorage.getItem("caroldo_remember_email");
       if (saved) {
-        setEmail(saved);
-        setRemember(true);
+        if (BLOCKED_EMAILS.includes(saved.toLowerCase().trim())) {
+          localStorage.removeItem("caroldo_remember_email");
+        } else {
+          setEmail(saved);
+          setRemember(true);
+        }
       }
     } catch (_) {}
   }, []);
@@ -358,6 +367,15 @@ export function AuthPage() {
   const handleTripleClick = useTripleClick(() => setQuickOpen(true), 1200);
 
   async function handleLogin(email: string, password: string, remember: boolean) {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (BLOCKED_EMAILS.includes(normalizedEmail)) {
+      try {
+        localStorage.removeItem("caroldo_remember_email");
+      } catch (_) {}
+      toast.error("E-mail desativado do sistema.");
+      return;
+    }
+
     setBusy(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -383,6 +401,10 @@ export function AuthPage() {
   function handleForgot(email: string) {
     if (!email) {
       toast.info("Digite seu e-mail corporativo no campo de e-mail primeiro.");
+      return;
+    }
+    if (BLOCKED_EMAILS.includes(email.trim().toLowerCase())) {
+      toast.error("Este e-mail está desativado do sistema.");
       return;
     }
     toast.promise(
